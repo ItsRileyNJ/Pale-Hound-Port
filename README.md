@@ -22,7 +22,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.3-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.4-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -34,11 +34,11 @@ python3 -m unittest discover -s tests -v
 ./gradlew processResources
 ```
 
-The eight Python checks compare assets, original AI goal bodies, configuration defaults
+The nine Python checks compare assets, original AI goal bodies, configuration defaults
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for twenty-seven in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for twenty-nine in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -187,3 +187,34 @@ Existing configs using the original default surface blacklist automatically migr
 the four excluded vanilla biomes on load/reload. Custom lists and whitelist/datapack
 modes are retained as additional restrictions. Datapacks can extend
 `pale_hound:blocked_spawn_biomes` and `pale_hound:forested_spawn_biomes`.
+
+## Supplied playback sounds (1.10.4)
+
+All 13 WAV clips from `Pale hound Sounds.zip` are included as streaming, 48 kHz stereo
+Ogg Vorbis. Their timing and mix are retained; playback uses occasional clips rather
+than continuous loops. [Audio provenance and file mapping](docs/USER_AUDIO.json) records
+the supplied filenames, hashes, durations and converted asset paths.
+
+| Supplied names | Playback trigger |
+| --- | --- |
+| Crying #1–5 | Random ambient playback through the existing noise timer and a nearby calm Hound's ambient intervals. |
+| Monster Sees Player #1–3 | When he acquires a player underground. |
+| Monster Sees Player Aboveground #1–2 | When he acquires a player on the surface, including the start of passive surface stalking. |
+| Stalking Underground #1–3 | During his existing non-attacking underground stare/approach behavior. |
+
+Spotting cues target the affected player and are throttled to prevent repeats for the
+same player within 45 seconds. Underground stalking cues begin 18–23 seconds after
+detection and repeat every 20–35 seconds while that behavior continues. Combat, flee,
+target loss and entity removal stop stalking playback. This adds audio to the existing
+underground behavior; it does not introduce a new passive cave encounter.
+
+These are personal stereo playback cues. Crying uses the Ambient/Environment volume
+slider; detection and stalking use Hostile Creatures. One supplied clip plays per
+client at a time, with spotting taking priority over stalking and crying. Playback
+clears on world changes/logout. Original chase, hurt, death, fleeing and footstep sounds
+are retained, as are the original audio assets and event definitions.
+
+Use `./gradlew runClient -PclientAudioSmoke=DisposableWorld` for the optional integrated
+sound test. It fully decodes all 13 clips through Minecraft's JOrbis decoder and checks
+real packet delivery, playback priorities, encounter-scoped stop and logout cleanup.
+Use a disposable world: the fixture removes existing test Hounds and sets creative mode.

@@ -1,0 +1,111 @@
+{
+  "source_archive": "Pale hound Sounds.zip",
+  "archive_sha256": "029ae762ef078f6885710ec4ca25ef9cc4345dde66f86a609a49c6b125f41f2c",
+  "conversion": "48 kHz stereo Ogg Vorbis quality 5; original timing and levels; no looping",
+  "clips": [
+    {
+      "original": "Monster Sees Player #1.wav",
+      "asset": "custom/sees_player_1",
+      "event": "sees_player",
+      "duration_seconds": 13.68,
+      "channels": 2,
+      "source_sha256": "048d06aa22194bc07aeab8cec38290cc1f52df71b2db01bb674cad3a51815f87"
+    },
+    {
+      "original": "Stalking Underground #1.wav",
+      "asset": "custom/stalking_underground_1",
+      "event": "stalking_underground",
+      "duration_seconds": 14.0,
+      "channels": 2,
+      "source_sha256": "f9b0d7e33dfd90ceb54500195f239abccddc0dda39930345b19f72f11ec930b0"
+    },
+    {
+      "original": "Stalking Underground #2.wav",
+      "asset": "custom/stalking_underground_2",
+      "event": "stalking_underground",
+      "duration_seconds": 12.96,
+      "channels": 2,
+      "source_sha256": "89ffe4f562a6b4722121a100d18b827e579da285126faf7f3c5d14f27b28a459"
+    },
+    {
+      "original": "Stalking Underground #3.wav",
+      "asset": "custom/stalking_underground_3",
+      "event": "stalking_underground",
+      "duration_seconds": 14.0,
+      "channels": 2,
+      "source_sha256": "260d5cd93f56a3d26af51c0d3f6b3ead9d999faa18bea384978e9553ef6ddd09"
+    },
+    {
+      "original": "Monster Sees Player #2.wav",
+      "asset": "custom/sees_player_2",
+      "event": "sees_player",
+      "duration_seconds": 12.8,
+      "channels": 2,
+      "source_sha256": "dd768def0c434ce5cc7d669d03d7fd8ff3e3ce90c6d51d6f647c36db029fbc8f"
+    },
+    {
+      "original": "Monster Sees Player #3.wav",
+      "asset": "custom/sees_player_3",
+      "event": "sees_player",
+      "duration_seconds": 9.56,
+      "channels": 2,
+      "source_sha256": "bd984b47f8d644ab455bb44261098b9e477e2e95e14bd69610ff1b552ba1036f"
+    },
+    {
+      "original": "Monster Sees Player Aboveground #2.wav",
+      "asset": "custom/sees_player_surface_2",
+      "event": "sees_player_surface",
+      "duration_seconds": 10.0,
+      "channels": 2,
+      "source_sha256": "bd1ce88aeaccef6f95302605175a55573c8596036eb63c5f6c3c496796373385"
+    },
+    {
+      "original": "Monster Sees Player Aboveground #1.wav",
+      "asset": "custom/sees_player_surface_1",
+      "event": "sees_player_surface",
+      "duration_seconds": 7.64,
+      "channels": 2,
+      "source_sha256": "9ae783c16c2f6e196228d6f043f1b915b1d09c72d47d9a86d07da3a354902a4d"
+    },
+    {
+      "original": "Crying #5.wav",
+      "asset": "custom/ambient_crying_5",
+      "event": "ambient_crying",
+      "duration_seconds": 12.8,
+      "channels": 2,
+      "source_sha256": "564bc5adaa11adf061b2748974914cacd0182a12f15b897ea96313b1c2e23bbe"
+    },
+    {
+      "original": "Crying #4.wav",
+      "asset": "custom/ambient_crying_4",
+      "event": "ambient_crying",
+      "duration_seconds": 12.32,
+      "channels": 2,
+      "source_sha256": "a56932489ead55dad8514bb9efa34c6ac76d44f72dfcd874dbe85525952e633c"
+    },
+    {
+      "original": "Crying #3.wav",
+      "asset": "custom/ambient_crying_3",
+      "event": "ambient_crying",
+      "duration_seconds": 12.0,
+      "channels": 2,
+      "source_sha256": "8b7f6137cdfb70f6d6735faab7af184c5f99b8e371f5033b6e525e17eb209e01"
+    },
+    {
+      "original": "Crying #2.wav",
+      "asset": "custom/ambient_crying_2",
+      "event": "ambient_crying",
+      "duration_seconds": 14.4,
+      "channels": 2,
+      "source_sha256": "cf26579c364904e8ebbf96a7257cb0fcf376b06e663832a673646187380f5b05"
+    },
+    {
+      "original": "Crying #1.wav",
+      "asset": "custom/ambient_crying_1",
+      "event": "ambient_crying",
+      "duration_seconds": 12.48,
+      "channels": 2,
+      "source_sha256": "0328f51737583c6f588325192f745a254d0f0367bc009ade10826e4701003433"
+    }
+  ]
+}

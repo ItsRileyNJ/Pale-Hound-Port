@@ -284,3 +284,36 @@ switching its biome to plains under identical nighttime conditions. The runtime 
 and saved TOML confirm the original default list migrated to the four exclusions.
 All eight resource/config regression checks pass, allowing the intentional blacklist
 change and new forest setting.
+
+## Follow-up: supplied ambient and encounter audio (1.10.4)
+
+The 13 supplied WAVs are converted to streaming 48 kHz stereo Ogg Vorbis without
+changing their timing or applying gain. `USER_AUDIO.json` records input hashes,
+durations, filenames and output paths. Four random-selection pools cover five crying
+clips, three underground stalking clips, three general player-detection clips and
+two aboveground detection clips. Original event definitions/assets remain present;
+new subtitle translations identify the four pools.
+
+Crying replaces the dimension noise playback and calm entity ambient playback. The
+existing noise timing and only-target option are preserved. An encounter audio
+controller plays personal detection cues on player acquisition/surface-stalk start,
+with a 45-second repeat guard for the same player. The existing passive underground
+stare/approach state plays its stalking pool after 18–23 seconds, then at 20–35-second
+intervals. The controller does not choose targets or change aggression. Combat,
+fleeing, invalid/lost targets, silent entities and removal stop stalking playback.
+
+A fixed-size client payload carries cue kind and source UUID. The client keeps one
+supplied playback channel: detection can interrupt lower priorities, while equal or
+lower priority requests are dropped. Stop messages match the source and stalking
+kind. Crying uses Ambient and other cues use Hostile sliders; playback is listener-
+relative and preserves stereo. State clears on world switch/logout, completion or
+the longest clip's 15-second safety deadline. Original vocal/footstep sounds can still
+play alongside these personal cues.
+
+All 29 server GameTests and nine Python resource checks pass. Added coverage verifies
+cue serialization, one-time detection, surface/cave pool selection, delayed/throttled
+underground playback, no combat-state changes, and stopping on combat/flee. The
+integrated client smoke fully decodes all 13 complete streams using Minecraft's
+JOrbis decoder and checks real payload delivery, sound-engine playback, priority,
+source-scoped stopping and logout cleanup. OpenAL runs on a virtual null output, so
+physical listening/speaker balance remains for user testing.

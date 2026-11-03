@@ -21,5 +21,9 @@
   "The Hound Grunts": "The Hound Grunts",
   "The Hound Growls": "The Hound Growls",
   "The Hound Spits": "The Hound Spits",
-  "The Hound Rattles": "The Hound Rattles"
+  "The Hound Rattles": "The Hound Rattles",
+  "subtitles.pale_hound.ambient_crying": "Distant crying",
+  "subtitles.pale_hound.stalking_underground": "Something stalks nearby",
+  "subtitles.pale_hound.sees_player": "The Hound notices you",
+  "subtitles.pale_hound.sees_player_surface": "The Hound watches from outside"
 }

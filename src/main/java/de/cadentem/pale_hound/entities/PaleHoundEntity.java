@@ -87,6 +87,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public static final EntityDataAccessor<Boolean> CLIMBING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public Roll currentRoll = Roll.STROLL;
    private Player surfaceStalkTarget;
+   private final HoundAudioController encounterAudio = new HoundAudioController(this);
    private boolean spottedDuringSurfaceStalk;
    private int surfaceStalkTicks;
    private int surfaceRetreatTicks;
@@ -225,6 +226,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          || !Utils.isValidTarget(player) || !Utils.isOnSurface(this) || !Utils.isOnSurface(player)
          || this.distanceToSqr(player) > 64 * 64) return false;
       this.surfaceStalkTarget = player;
+      this.encounterAudio.playerDetected(player);
       this.spottedDuringSurfaceStalk = false;
       this.surfaceStalkTicks = Utils.scalePresenceTicks(this.getRandom().nextIntBetweenInclusive(600, 900));
       this.surfaceRetreatTicks = 0;
@@ -234,7 +236,10 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    @Override
    public void setTarget(LivingEntity target) {
+      LivingEntity previous = this.getTarget();
       super.setTarget(!this.isSurfaceStalking() && PaleHoundTargets.isAllowed(target) ? target : null);
+      if (!this.level().isClientSide() && this.encounterAudio != null && this.getTarget() instanceof Player player && previous != player)
+         this.encounterAudio.playerDetected(player);
    }
 
    @Override
@@ -357,6 +362,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.refreshDimensions();
       this.getNavigation().setSpeedModifier(this.getSpeedModifier());
       super.tick();
+      if (!this.level().isClientSide()) this.encounterAudio.tick();
    }
 
    public double getSpeedModifier() {
@@ -555,8 +561,17 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    }
 
    public void playAmbientSound() {
-      SoundEvent soundEvent = this.chooseAmbientSound();
-      this.playEntitySound(soundEvent, 2.0F, 1.0F);
+      if (this.level() instanceof ServerLevel level && !this.isSilent() && !this.isAggressive() && !this.isFleeing
+         && !this.encounterAudio.isUndergroundStalking()) {
+         level.getPlayers(player -> player.distanceToSqr(this) <= 48 * 48).forEach(player ->
+            PacketDistributor.sendToPlayer(player, new de.cadentem.pale_hound.network.HoundSoundCue(
+               de.cadentem.pale_hound.network.HoundSoundCue.Kind.AMBIENT_CRYING, this.getUUID())));
+      }
+   }
+
+   @Override public void remove(@NotNull RemovalReason reason) {
+      if (!this.level().isClientSide() && this.encounterAudio != null) this.encounterAudio.stopStalking();
+      super.remove(reason);
    }
 
    private SoundEvent chooseStep() {

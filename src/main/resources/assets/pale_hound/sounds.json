@@ -1,4 +1,4 @@
-  {
+{
   "cavenoise_1": {
     "subtitle": "Nearby Breathing",
     "sounds": [
@@ -29,43 +29,43 @@
       "pale_hound:wolf_whine"
     ]
   },
-    "wolf_panting": {
-      "subtitle": "Wolf pants",
-      "sounds": [
-        "pale_hound:wolf_panting"
-      ]
-    },
-    "wolf_idle1": {
-      "subtitle": "Wolf pants",
-      "sounds": [
-        "pale_hound:wolf_idle1"
-      ]
-    },
-    "wolf_idle2": {
-      "subtitle": "Wolf pants",
-      "sounds": [
-        "pale_hound:wolf_idle2"
-      ]
-    },
-    "wolf_idle3": {
-      "subtitle": "Wolf pants",
-      "sounds": [
-        "pale_hound:wolf_idle3"
-      ]
-    },
-    "wolf_howl1": {
-      "subtitle": "Wolf howls",
-      "sounds": [
-        "pale_hound:wolf_howl1"
-      ]
-    },
-    "wolf_howl2": {
-      "subtitle": "Nightmarish Howl",
-      "sounds": [
-        "pale_hound:wolf_howl2"
-      ]
-    },
-    "chase_step_1": {
+  "wolf_panting": {
+    "subtitle": "Wolf pants",
+    "sounds": [
+      "pale_hound:wolf_panting"
+    ]
+  },
+  "wolf_idle1": {
+    "subtitle": "Wolf pants",
+    "sounds": [
+      "pale_hound:wolf_idle1"
+    ]
+  },
+  "wolf_idle2": {
+    "subtitle": "Wolf pants",
+    "sounds": [
+      "pale_hound:wolf_idle2"
+    ]
+  },
+  "wolf_idle3": {
+    "subtitle": "Wolf pants",
+    "sounds": [
+      "pale_hound:wolf_idle3"
+    ]
+  },
+  "wolf_howl1": {
+    "subtitle": "Wolf howls",
+    "sounds": [
+      "pale_hound:wolf_howl1"
+    ]
+  },
+  "wolf_howl2": {
+    "subtitle": "Nightmarish Howl",
+    "sounds": [
+      "pale_hound:wolf_howl2"
+    ]
+  },
+  "chase_step_1": {
     "subtitle": "Heavy Footsteps",
     "sounds": [
       "pale_hound:chase_step_1"
@@ -165,6 +165,78 @@
     "subtitle": "The Hound Rattles",
     "sounds": [
       "pale_hound:hound_hurt_4"
+    ]
+  },
+  "ambient_crying": {
+    "subtitle": "subtitles.pale_hound.ambient_crying",
+    "sounds": [
+      {
+        "name": "pale_hound:custom/ambient_crying_5",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/ambient_crying_4",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/ambient_crying_3",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/ambient_crying_2",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/ambient_crying_1",
+        "stream": true
+      }
+    ]
+  },
+  "stalking_underground": {
+    "subtitle": "subtitles.pale_hound.stalking_underground",
+    "sounds": [
+      {
+        "name": "pale_hound:custom/stalking_underground_1",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/stalking_underground_2",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/stalking_underground_3",
+        "stream": true
+      }
+    ]
+  },
+  "sees_player": {
+    "subtitle": "subtitles.pale_hound.sees_player",
+    "sounds": [
+      {
+        "name": "pale_hound:custom/sees_player_1",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/sees_player_2",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/sees_player_3",
+        "stream": true
+      }
+    ]
+  },
+  "sees_player_surface": {
+    "subtitle": "subtitles.pale_hound.sees_player_surface",
+    "sounds": [
+      {
+        "name": "pale_hound:custom/sees_player_surface_2",
+        "stream": true
+      },
+      {
+        "name": "pale_hound:custom/sees_player_surface_1",
+        "stream": true
+      }
     ]
   }
 }

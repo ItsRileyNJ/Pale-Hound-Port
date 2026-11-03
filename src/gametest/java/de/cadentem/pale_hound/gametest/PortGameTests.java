@@ -813,6 +813,92 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void soundCuePayloadRoundTrip(GameTestHelper helper) {
+        var source = java.util.UUID.randomUUID();
+        for (var kind : de.cadentem.pale_hound.network.HoundSoundCue.Kind.values()) {
+            var packet = new de.cadentem.pale_hound.network.HoundSoundCue(kind, source);
+            var buffer = new FriendlyByteBuf(Unpooled.buffer());
+            try {
+                de.cadentem.pale_hound.network.HoundSoundCue.STREAM_CODEC.encode(buffer, packet);
+                helper.assertTrue(packet.equals(de.cadentem.pale_hound.network.HoundSoundCue.STREAM_CODEC.decode(buffer))
+                    && buffer.readableBytes() == 0, "Cue kind/source changed in transit");
+            } finally { buffer.release(); }
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void soundsFollowExistingEncounterStates(GameTestHelper helper) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var level = helper.getLevel();
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "AudioStateTest"));
+        player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+        player.setPos(hound.position().add(2, 0, 0));
+        var events = new java.util.ArrayList<de.cadentem.pale_hound.network.HoundSoundCue.Kind>();
+        var audio = new de.cadentem.pale_hound.entities.HoundAudioController(hound) {
+            @Override protected void emit(net.minecraft.world.entity.player.Player target, de.cadentem.pale_hound.network.HoundSoundCue.Kind kind) {
+                helper.assertTrue(target == player, "Encounter cue went to the wrong listener");
+                events.add(kind);
+            }
+        };
+        var pos = hound.blockPosition();
+        var originalBiome = level.getBiome(pos).unwrapKey().orElseThrow().location();
+        var source = level.getServer().createCommandSourceStack().withLevel(level).withPermission(4).withSuppressedOutput();
+        String fill = "fillbiome " + (pos.getX() - 2) + " " + (pos.getY() - 2) + " " + (pos.getZ() - 2) + " "
+            + (pos.getX() + 2) + " " + (pos.getY() + 2) + " " + (pos.getZ() + 2) + " ";
+        var commands = level.getServer().getCommands().getDispatcher();
+        commands.execute(fill + "minecraft:lush_caves", source);
+        helper.setBlock(2, 5, 2, net.minecraft.world.level.block.Blocks.STONE);
+        helper.runAfterDelay(20, () -> {
+            try {
+                helper.assertTrue(!de.cadentem.pale_hound.util.Utils.isOnSurface(hound), "Underground fixture was classified as surface");
+                hound.setTarget(player);
+                hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.STARE;
+                hound.setAggressive(false);
+                audio.playerDetected(player);
+                audio.playerDetected(player);
+                helper.assertTrue(events.equals(java.util.List.of(de.cadentem.pale_hound.network.HoundSoundCue.Kind.SEES_PLAYER)),
+                    "Player detection should play once, using the general cave cue");
+                audio.tick();
+                helper.assertTrue(events.size() == 1, "Stalking cue should wait for the detection clip");
+                hound.tickCount += 461;
+                audio.tick();
+                helper.assertTrue(events.getLast() == de.cadentem.pale_hound.network.HoundSoundCue.Kind.STALKING_UNDERGROUND,
+                    "Passive cave approach should play underground stalking audio");
+                helper.assertTrue(!hound.isAggressive() && hound.getTarget() == player, "Audio must not change target or combat state");
+                audio.tick();
+                helper.assertTrue(events.size() == 2, "Long stalking clips must not replay every tick");
+                hound.setAggressive(true);
+                audio.tick();
+                audio.tick();
+                helper.assertTrue(events.size() == 3 && events.getLast() == de.cadentem.pale_hound.network.HoundSoundCue.Kind.STOP_STALKING,
+                    "Starting combat must stop stalking playback exactly once");
+                hound.setAggressive(false);
+                hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.FLEE;
+                hound.tickCount += 1000;
+                audio.tick();
+                helper.assertTrue(events.size() == 3, "Fleeing must not play stalking clips");
+                helper.setBlock(2, 5, 2, net.minecraft.world.level.block.Blocks.AIR);
+                commands.execute(fill + originalBiome, source);
+                audio.playerDetected(player);
+                helper.assertTrue(events.getLast() == de.cadentem.pale_hound.network.HoundSoundCue.Kind.SEES_PLAYER_SURFACE,
+                    "Aboveground detection should choose the surface-specific pool");
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException error) {
+                throw new RuntimeException(error);
+            } finally {
+                try { commands.execute(fill + originalBiome, source); }
+                catch (com.mojang.brigadier.exceptions.CommandSyntaxException error) { throw new RuntimeException(error); }
+                hound.discard();
+                player.discard();
+            }
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

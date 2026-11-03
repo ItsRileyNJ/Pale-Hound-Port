@@ -9,6 +9,10 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 
 public class ModSounds {
    public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, "pale_hound");
+   public static final DeferredHolder<SoundEvent, SoundEvent> AMBIENT_CRYING = registerSoundEvent("ambient_crying");
+   public static final DeferredHolder<SoundEvent, SoundEvent> STALKING_UNDERGROUND = registerSoundEvent("stalking_underground");
+   public static final DeferredHolder<SoundEvent, SoundEvent> SEES_PLAYER = registerSoundEvent("sees_player");
+   public static final DeferredHolder<SoundEvent, SoundEvent> SEES_PLAYER_SURFACE = registerSoundEvent("sees_player_surface");
    public static final DeferredHolder<SoundEvent, SoundEvent> CAVENOISE_1 = registerSoundEvent("cavenoise_1");
    public static final DeferredHolder<SoundEvent, SoundEvent> CAVENOISE_2 = registerSoundEvent("cavenoise_2");
    public static final DeferredHolder<SoundEvent, SoundEvent> CAVENOISE_3 = registerSoundEvent("cavenoise_3");

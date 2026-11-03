@@ -4,7 +4,6 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
 import de.cadentem.pale_hound.config.ServerConfig;
 import de.cadentem.pale_hound.entities.PaleHoundEntity;
-import de.cadentem.pale_hound.network.CaveSound;
 import de.cadentem.pale_hound.network.NetworkHandler;
 import de.cadentem.pale_hound.registry.ModEntityTypes;
 import de.cadentem.pale_hound.registry.ModItems;
@@ -17,10 +16,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.Mth;
 import net.minecraft.util.SpawnUtil.Strategy;
 import net.minecraft.world.entity.Entity;
@@ -169,14 +166,9 @@ public class PaleHound {
       Entity currentVictim = timer.currentVictim;
       if (currentVictim != null) {
          players.forEach(player -> {
-            ResourceLocation soundLocation = switch (RANDOM.nextInt(4)) {
-               case 1 -> ((SoundEvent)ModSounds.CAVENOISE_2.get()).getLocation();
-               case 2 -> ((SoundEvent)ModSounds.CAVENOISE_3.get()).getLocation();
-               case 3 -> ((SoundEvent)ModSounds.CAVENOISE_4.get()).getLocation();
-               default -> ((SoundEvent)ModSounds.CAVENOISE_1.get()).getLocation();
-            };
             if (!(Boolean)ServerConfig.ONLY_PLAY_NOISE_TO_TARGET.get() || player.is(timer.currentVictim)) {
-               PacketDistributor.sendToPlayer(player, new CaveSound(soundLocation, currentVictim.blockPosition(), 2.0F, 1.0F));
+               PacketDistributor.sendToPlayer(player, new de.cadentem.pale_hound.network.HoundSoundCue(
+                     de.cadentem.pale_hound.network.HoundSoundCue.Kind.AMBIENT_CRYING, new java.util.UUID(0, 0)));
             }
          });
          timer.resetNoiseTimer();

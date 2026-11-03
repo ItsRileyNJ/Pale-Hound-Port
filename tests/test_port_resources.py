@@ -21,7 +21,15 @@ class PortResources(unittest.TestCase):
             if name in BASE['migrated_assets']:
                 continue
             with self.subTest(name=name):
-                self.assertEqual(digest((RES / name).read_bytes()), expected)
+                if name == 'assets/pale_hound/sounds.json':
+                    original = (ROOT / 'tests/original_sounds.json').read_bytes()
+                    self.assertEqual(digest(original), expected)
+                    actual = json.loads((RES / name).read_text())
+                    for key in ['ambient_crying', 'stalking_underground', 'sees_player', 'sees_player_surface']:
+                        actual.pop(key)
+                    self.assertEqual(actual, json.loads(original))
+                else:
+                    self.assertEqual(digest((RES / name).read_bytes()), expected)
 
     def test_necessary_asset_migrations_preserve_content(self):
         import copy
@@ -43,7 +51,14 @@ class PortResources(unittest.TestCase):
         expected = dict(BASE['migrated_assets'][name])
         for value in json.loads((RES / 'assets/pale_hound/sounds.json').read_text()).values():
             if 'subtitle' in value:
-                expected[value['subtitle']] = value['subtitle']
+                if not value['subtitle'].startswith('subtitles.pale_hound.'):
+                    expected[value['subtitle']] = value['subtitle']
+        expected.update({
+            'subtitles.pale_hound.ambient_crying': 'Distant crying',
+            'subtitles.pale_hound.stalking_underground': 'Something stalks nearby',
+            'subtitles.pale_hound.sees_player': 'The Hound notices you',
+            'subtitles.pale_hound.sees_player_surface': 'The Hound watches from outside',
+        })
         self.assertEqual(json.loads((RES / name).read_text()), expected)
 
     def test_grounded_crawl_loops_and_idle_pose(self):
@@ -69,6 +84,21 @@ class PortResources(unittest.TestCase):
             self.assertEqual(low_bones, normal_bones)
             # Compression about the base pivot must keep the feet on the floor.
             self.assertAlmostEqual(19.5 * (1 - base['scale'][1]) + base['position'][1], 0)
+
+    def test_user_audio_encoding_and_event_pools(self):
+        clips = json.loads((ROOT / 'docs/USER_AUDIO.json').read_text())['clips']
+        self.assertEqual(len(clips), 13)
+        sounds = json.loads((RES / 'assets/pale_hound/sounds.json').read_text())
+        for event, count in [('ambient_crying', 5), ('sees_player', 3), ('sees_player_surface', 2), ('stalking_underground', 3)]:
+            self.assertEqual(len(sounds[event]['sounds']), count)
+            self.assertTrue(all(entry['stream'] for entry in sounds[event]['sounds']))
+        for clip in clips:
+            data = (RES / ('assets/pale_hound/sounds/' + clip['asset'] + '.ogg')).read_bytes()
+            self.assertTrue(data.startswith(b'OggS'))
+            header = data.index(b'\x01vorbis')
+            self.assertEqual(data[header + 11], 2)  # Preserve supplied stereo playback.
+            self.assertEqual(int.from_bytes(data[header + 12:header + 16], 'little'), 48000)
+            self.assertIn('pale_hound:' + clip['asset'], [entry['name'] for entry in sounds[clip['event']]['sounds']])
 
     def test_config_defaults_and_category_order_unchanged(self):
         for name, expected in BASE['config_static_blocks'].items():
