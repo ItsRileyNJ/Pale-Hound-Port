@@ -1,2 +1,6 @@
+# Preserve imported resources byte-for-byte, including their original whitespace.
+src/main/resources/assets/** -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+*.jar -text
+*.nbt -text
 # Keep the recovered reference file byte-identical, including its original CRLFs.
 tests/original_sounds.json -text whitespace=cr-at-eol
