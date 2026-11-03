@@ -14,6 +14,9 @@ public class ServerConfig {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final ModConfigSpec SPEC;
     public static ModConfigSpec.DoubleValue SPAWN_TIMER_MULTIPLIER;
+    public static ModConfigSpec.DoubleValue PRESENCE_TIME_MULTIPLIER;
+    public static ModConfigSpec.IntValue ROAM_RADIUS;
+    public static ModConfigSpec.IntValue ROAM_INTERVAL;
     public static ModConfigSpec.IntValue CAN_SPAWN_MIN;
     public static ModConfigSpec.IntValue CAN_SPAWN_MAX;
     public static ModConfigSpec.IntValue CAN_SPAWN_COOLDOWN;
@@ -111,6 +114,7 @@ public class ServerConfig {
         RESET_NOISE_MAX = BUILDER.comment("Maximum time between noise occurrences in seconds").defineInRange("reset_noise_max", 860, 0, 86400);
         BUILDER.pop();
         BUILDER.push("Leave");
+        PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);
         TIME_UNTIL_LEAVE = BUILDER.comment("Time (in seconds) it takes for the Pale Hound to leave").defineInRange("time_until_leave", 300, 1, 6000);
         TIME_UNTIL_LEAVE_CHASE = BUILDER.comment("Time (in seconds) it takes for the Pale Hound to leave once a chase begins").defineInRange("time_until_leave_chase", 30, 1, 600);
         BUILDER.pop();
@@ -135,6 +139,8 @@ public class ServerConfig {
         BUILDER.pop();
         BUILDER.pop();
         BUILDER.push("Behaviour");
+        ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);
+        ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);
         SPOTTING_RANGE = BUILDER.comment("The distance in blocks at which the Pale Hound can detect whether a player is looking at it or not").defineInRange("spotting_range", 50, 0, 128);
         CAN_CLIMB = BUILDER.comment("Whether the pale hound can climb or not").define("can_climb", true);
         ALLOW_RIDING = BUILDER.comment("Allow the Pale Hound to follow vanilla riding logic (e.g. boats)").define("allow_riding", false);

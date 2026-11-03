@@ -38,7 +38,7 @@ The seven Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for eleven in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for fourteen in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -69,7 +69,7 @@ begin stalking a player within 64 blocks before normal attack targeting runs.
 If he remains idle, he retries at 90% every five seconds. This does not interrupt a chase or flee.
 He crawls after the player, aims to stay 16–24 blocks away, and backs off when approached.
 All attacks are blocked during stalking and retreat, including at melee distance.
-After 30–45 seconds he runs away, then despawns after three seconds. Losing the player
+After 90–135 seconds by default he runs away, then despawns after three seconds. Losing the player
 or leaving the surface starts the retreat early. His normal lifetime countdown pauses
 during this sequence so it can finish; removal is controlled by the server.
 
@@ -99,3 +99,26 @@ and retreat still suppress attacks against every target.
 
 The Mercenaries mod is optional, and its JAR is not bundled. For compatibility testing
 with your own copy, use `./gradlew runGameTestServer -PmercenariesJar=/absolute/path/to/mod.jar`.
+
+## Longer presence and improved navigation
+
+`[Timers.Leave].presence_time_multiplier` defaults to `3.0`. With the original base
+settings this gives a 15-minute normal lifetime, 90-second chase leave timer, and
+90–135-second stalking duration. Eye-contact retreats and their three-second despawn
+still take priority. Normal distance-based despawning and chunk loading rules apply.
+Set the multiplier to `1.0` to restore the previous durations. It scales saved base
+settings without rewriting them; ordinary lifetime and chase timers are set when a
+Hound/goal is created, and stalking duration when a stalking sequence starts.
+
+`[Behaviour].roam_radius = 24` widens idle searches from the original 10 blocks per
+horizontal axis. `roam_interval = 40` lowers the original 120-tick attempt interval.
+The roam goal remembers eight destinations, favors unexplored ground, and chooses
+reachable destinations rather than accepting a random blocked point.
+
+The climbing navigator refreshes a route after two seconds without movement, supports
+a larger bounded node budget, and clears its destination when stopped. Evaluating a
+candidate path does not itself start movement or change the active destination.
+Stalking/retreat movement can try up to four alternate waypoints, including flanking
+positions, and prefers completed paths on safe ground. Fire, lava, magma, powder snow
+and water receive avoidance checks/costs. Waypoint destinations must lie in loaded chunks;
+pathfinding does not guarantee a route through every terrain layout.

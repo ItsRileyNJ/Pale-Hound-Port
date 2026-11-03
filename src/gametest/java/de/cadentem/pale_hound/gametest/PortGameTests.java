@@ -159,8 +159,10 @@ public final class PortGameTests {
             // Keep the test synchronous: advance the entity through the whole lifecycle.
             hound.setNoAi(true);
             int ticks = 0;
-            while (!hound.isSurfaceStalkRetreating() && ticks++ < 901) hound.tick();
-            helper.assertTrue(ticks + 2 >= 600 && ticks + 2 <= 900, "Stalking duration should be 30–45 seconds");
+            int minimum = de.cadentem.pale_hound.util.Utils.scalePresenceTicks(600);
+            int maximum = de.cadentem.pale_hound.util.Utils.scalePresenceTicks(900);
+            while (!hound.isSurfaceStalkRetreating() && ticks++ < maximum + 1) hound.tick();
+            helper.assertTrue(ticks + 2 >= minimum && ticks + 2 <= maximum, "Stalking duration should respect the presence multiplier");
             helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Stalking must transition to retreat");
             helper.assertTrue(!hound.isCrawling() && hound.getSpeedModifier() == 1.2, "Retreat should use running posture and speed");
             helper.assertTrue(!hound.doHurtTarget(player), "Retreat must remain passive");
@@ -341,6 +343,100 @@ public final class PortGameTests {
                 helper.assertTrue(hound.getTarget() == target && hound.canAttack(target), "Optional mod target selection failed: " + id);
                 target.discard();
             }
+        } finally { hound.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void extendedLifetimeRespectsConfiguration(GameTestHelper helper) {
+        int lifetime = ServerConfig.TIME_UNTIL_LEAVE.get();
+        double multiplier = ServerConfig.PRESENCE_TIME_MULTIPLIER.get();
+        PaleHoundEntity hound = null;
+        try {
+            ServerConfig.TIME_UNTIL_LEAVE.set(2);
+            ServerConfig.PRESENCE_TIME_MULTIPLIER.set(3.0);
+            hound = spawn(helper);
+            hound.setNoAi(true);
+            hound.setNoGravity(true);
+            for (int tick = 0; tick < 41; ++tick) hound.tick();
+            helper.assertTrue(!hound.isRemoved(), "Hound should outlive its original unscaled lifetime");
+            for (int tick = 41; tick < 120; ++tick) hound.tick();
+            helper.assertTrue(hound.isRemoved(), "Scaled lifetime should still expire");
+        } finally {
+            if (hound != null) hound.discard();
+            ServerConfig.TIME_UNTIL_LEAVE.set(lifetime);
+            ServerConfig.PRESENCE_TIME_MULTIPLIER.set(multiplier);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void navigationReplansAndStopsCleanly(GameTestHelper helper) {
+        for (int x = 0; x < 8; ++x) for (int z = 0; z < 8; ++z)
+            helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(1, 1, 3))));
+        try {
+            var navigation = hound.getNavigation();
+            var target = helper.absolutePos(new BlockPos(6, 1, 3));
+            var initial = navigation.createPath(target, 0);
+            helper.assertTrue(initial != null && initial.canReach(), "Initial open path should reach destination");
+            navigation.tick();
+            helper.assertTrue(navigation.getTargetPos() == null, "Planning should not replace the active navigation destination");
+            helper.assertTrue(!hound.getMoveControl().hasWanted(), "Merely planning a path should not start climbing movement");
+            helper.assertTrue(navigation.moveTo(initial, 0.6), "Could not start initial route");
+            for (int y = 1; y <= 3; ++y) for (int z = 1; z <= 5; ++z)
+                helper.setBlock(4, y, z, net.minecraft.world.level.block.Blocks.STONE);
+            for (int tick = 0; tick < 42; ++tick) navigation.tick();
+            var rerouted = navigation.getPath();
+            helper.assertTrue(rerouted != null && rerouted != initial && rerouted.canReach(), "Stuck navigation should find a fresh route around the wall");
+            for (int i = 0; i < rerouted.getNodeCount(); ++i) {
+                var node = rerouted.getNode(i).asBlockPos();
+                helper.assertTrue(helper.getLevel().getBlockState(node).getCollisionShape(helper.getLevel(), node).isEmpty(), "Replanned route intersects wall");
+            }
+            navigation.stop();
+            hound.getMoveControl().tick();
+            navigation.tick();
+            helper.assertTrue(navigation.isDone() && navigation.getTargetPos() == null && !hound.getMoveControl().hasWanted(), "Stopped climbing navigator resumed its stale destination");
+            // A safe fallback should beat an impassable first candidate.
+            var route = de.cadentem.pale_hound.entities.navigation.HoundRoutes.findReachable(hound,
+                java.util.List.of(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(4, 1, 3))),
+                    Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(2, 1, 6)))));
+            helper.assertTrue(route != null && route.canReach(), "Waypoint search should try another reachable candidate");
+            helper.setBlock(2, 0, 6, net.minecraft.world.level.block.Blocks.MAGMA_BLOCK);
+            var safeRoute = de.cadentem.pale_hound.entities.navigation.HoundRoutes.findReachable(hound,
+                java.util.List.of(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(2, 1, 6))),
+                    Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(2, 1, 1)))));
+            helper.assertTrue(safeRoute != null && !safeRoute.getTarget().equals(helper.absolutePos(new BlockPos(2, 1, 6))),
+                "Waypoint selection should reject magma and use safe ground");
+        } finally { hound.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void roamingExploresBeyondOriginalRadius(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        while (hound.blockPosition().getY() > helper.getLevel().getMinBuildHeight()
+            && !helper.getLevel().getBlockState(hound.blockPosition().below()).isSolid())
+            hound.setPos(hound.position().add(0, -1, 0));
+        try {
+            hound.getRandom().setSeed(0);
+            var roaming = new de.cadentem.pale_hound.entities.goals.PaleHoundRoamGoal(hound, 0.35);
+            boolean exploredFurther = false;
+            for (int attempt = 0; attempt < 16; ++attempt) {
+                var destination = roaming.getPosition();
+                if (destination == null) continue;
+                double dx = destination.x - hound.getX();
+                double dz = destination.z - hound.getZ();
+                if (Math.abs(dx) > 10 || Math.abs(dz) > 10) exploredFurther = true;
+                helper.assertTrue(Math.abs(dx) <= ServerConfig.ROAM_RADIUS.get() + 1
+                    && Math.abs(dz) <= ServerConfig.ROAM_RADIUS.get() + 1, "Roaming exceeded configured search bounds");
+            }
+            helper.assertTrue(exploredFurther, "Roaming should choose reachable destinations beyond the original ten-block search");
         } finally { hound.discard(); }
         helper.succeed();
     }

@@ -33,6 +33,14 @@ public class Utils {
       return seconds * 20;
    }
 
+   public static int scalePresenceTicks(int ticks) {
+      return Math.max(1, (int)Math.ceil(ticks * ServerConfig.PRESENCE_TIME_MULTIPLIER.get()));
+   }
+
+   public static int presenceTicks(int seconds) {
+      return scalePresenceTicks(secondsToTicks(seconds));
+   }
+
    public static int minutesToTicks(int minutes) {
       return secondsToTicks(minutes * 60);
    }

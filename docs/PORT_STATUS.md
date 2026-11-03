@@ -9,7 +9,7 @@ Exhaustive visual and multiplayer equivalence to the original is not claimed.
   dimension, command, and creative-tab events.
 - All eleven original AI goal/roll classes retained. The only source-body changes in
   those classes initially were the 1.21 step-height API, mob-griefing hook, and glass base-class names.
-  The surface-stalking follow-up also adds an explicit chase-continuation guard.
+  Follow-ups also add an explicit chase-continuation guard and scale its initial leave timer.
 - NeoForge client-bound custom payload registration replaces Forge SimpleChannel.
   The payload retains the original resource ID, position, volume, and pitch fields.
   The client keeps the original hard-coded playback volume/pitch (2.0/1.0), rather
@@ -152,3 +152,33 @@ The new runtime tests also cover looking away, occluded gaze, direct gaze, immed
 retreat, despawn, the exact one-off 75% reduction, unchanged noise timing, ordinary
 subsequent timer resets, excluded targets not taking melee damage or provoking
 retaliation, both tame and wild wolves being allowed, and marked versus ordinary horses.
+
+## Follow-up: longer presence, roaming and navigation
+
+- Added `presence_time_multiplier = 3.0` under Timers.Leave, applied to normal lifetime,
+  chase leave time and stalking duration. Existing base configuration is retained and
+  the new key is corrected into existing config files. Defaults become 15 minutes,
+  90 seconds and 90–135 seconds respectively. Forced retreats remain 60 ticks and the
+  spotted-respawn bonus is unchanged.
+- A roam goal extends the original stroll eligibility rules, with configurable radius
+  24 and attempt interval 40 under Behaviour (previously 10 and 120). It ranks sampled
+  destinations using exploration distance and a penalty near the last eight destinations,
+  and requests a completed route before selecting a waypoint.
+- A Hound-specific WallClimberNavigation subclass preserves climbing, allows floating,
+  increases the node-search multiplier from 4 to 6, and refreshes a route after 40 ticks
+  without half a block of movement. It never teleports as part of recovery.
+- Accessors clear both climbing fallback and regular recomputation destinations on stop.
+  Candidate searches preserve the active destination so path planning alone cannot
+  trigger phantom movement or redirect later recomputations.
+- Stalking/retreat path selection evaluates up to four endpoints and can flank an obstacle.
+  Ground snapping is bounded to +2/-6 blocks and loaded chunks. Unsafe/liquid endpoints
+  are rejected; navigation costs discourage water/fire and prohibit lava/fire damage
+  and powder-snow nodes. Original crawling, targeting and mob-griefing rules remain.
+
+All 14 server GameTests pass, including a run with the supplied Mercenaries mod. Tests
+cover the longer-but-finite lifetime, scaled stalking and unchanged forced retreat,
+reachable roaming beyond the original radius, rebuilding a stale route around a new
+wall, keeping stopped navigation stopped, path planning without movement, alternative
+waypoints and rejecting a magma endpoint. All 7 parity/resource checks pass; original
+config defaults and goal logic are compared allowing the documented added options
+and the chase timer scaling. Full visual/multiplayer terrain testing remains manual.

@@ -8,7 +8,8 @@ import de.cadentem.pale_hound.entities.goals.PaleHoundBreakInvisGoal;
 import de.cadentem.pale_hound.entities.goals.PaleHoundChaseGoal;
 import de.cadentem.pale_hound.entities.goals.PaleHoundFleeGoal;
 import de.cadentem.pale_hound.entities.goals.PaleHoundStareGoal;
-import de.cadentem.pale_hound.entities.goals.PaleHoundStrollGoal;
+import de.cadentem.pale_hound.entities.goals.PaleHoundRoamGoal;
+import de.cadentem.pale_hound.entities.navigation.PaleHoundNavigation;
 import de.cadentem.pale_hound.entities.goals.PaleHoundTargetSeesMeGoal;
 import de.cadentem.pale_hound.entities.goals.PaleHoundTargetTooCloseGoal;
 import de.cadentem.pale_hound.entities.goals.Roll;
@@ -45,7 +46,6 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
-import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -101,8 +101,13 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public PaleHoundEntity(EntityType<? extends PaleHoundEntity> entityType, Level level) {
       super(entityType, level);
       this.refreshDimensions();
-      this.ticksTillRemove = Utils.secondsToTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE.get());
+      this.ticksTillRemove = Utils.presenceTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE.get());
       this.setPathfindingMalus(PathType.UNPASSABLE_RAIL, 0.0F);
+      this.setPathfindingMalus(PathType.WATER, 8.0F);
+      this.setPathfindingMalus(PathType.DANGER_FIRE, 8.0F);
+      this.setPathfindingMalus(PathType.DAMAGE_FIRE, -1.0F);
+      this.setPathfindingMalus(PathType.LAVA, -1.0F);
+      this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
    }
 
    public void applyConfigAttributes() {
@@ -163,7 +168,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.goalSelector.addGoal(2, new PaleHoundFleeGoal(this, 40.0F, 1.2));
       this.goalSelector.addGoal(3, new PaleHoundBreakInvisGoal(this));
       this.goalSelector.addGoal(3, new PaleHoundStareGoal(this));
-      this.goalSelector.addGoal(4, new PaleHoundStrollGoal(this, 0.35));
+      this.goalSelector.addGoal(4, new PaleHoundRoamGoal(this, 0.35));
       this.targetSelector.addGoal(1, new CustomHurtByTargetGoal(this));
       this.targetSelector.addGoal(2, new PaleHoundTargetTooCloseGoal(this, 13.0F));
       this.targetSelector.addGoal(3, new PaleHoundTargetSeesMeGoal(this));
@@ -212,7 +217,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          || this.distanceToSqr(player) > 64 * 64) return false;
       this.surfaceStalkTarget = player;
       this.spottedDuringSurfaceStalk = false;
-      this.surfaceStalkTicks = this.getRandom().nextIntBetweenInclusive(600, 900);
+      this.surfaceStalkTicks = Utils.scalePresenceTicks(this.getRandom().nextIntBetweenInclusive(600, 900));
       this.surfaceRetreatTicks = 0;
       this.getNavigation().stop();
       return true;
@@ -375,9 +380,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    @NotNull
    protected PathNavigation createNavigation(@NotNull Level level) {
-      WallClimberNavigation navigation = new WallClimberNavigation(this, level);
-      navigation.setMaxVisitedNodesMultiplier(4.0F);
-      return navigation;
+      return new PaleHoundNavigation(this, level);
    }
 
    private PlayState predicate(AnimationState<PaleHoundEntity> state) {

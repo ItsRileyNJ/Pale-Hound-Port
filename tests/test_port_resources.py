@@ -48,6 +48,13 @@ class PortResources(unittest.TestCase):
                     addition = 'SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Scale spawn waits and cooldowns; 0.8 means 20% shorter waits, 1.0 restores original timing. Does not affect noise timers.").defineInRange("spawn_timer_multiplier", 0.8, 0.1, 5.0);'
                     self.assertIn(addition, block)
                     block = block.replace(addition, '')
+                    for addition in [
+                        'PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);',
+                        'ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);',
+                        'ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);',
+                    ]:
+                        self.assertIn(addition, block)
+                        block = block.replace(addition, '')
                 normalized = re.sub(r'\s+', '', block).replace('(Object)500', '500')
                 self.assertEqual(digest(normalized.encode()), expected)
 
@@ -57,6 +64,7 @@ class PortResources(unittest.TestCase):
                 source = (ROOT / 'src/main/java/de/cadentem/pale_hound/entities/goals' / filename).read_text()
                 body = source[source.index('public '):]
                 body = body.replace('maxUpStep()', 'getStepHeight()')
+                body = body.replace('Utils.presenceTicks(', 'Utils.secondsToTicks(')
                 body = body.replace('EventHooks.canEntityGrief', 'ForgeEventFactory.getMobGriefingEvent')
                 body = body.replace('HalfTransparentBlock', 'AbstractGlassBlock')
                 body = re.sub(r'if \(this\.paleHound\.isSurfaceStalking\(\)\) \{\s*return false;\s*\}', '', body)

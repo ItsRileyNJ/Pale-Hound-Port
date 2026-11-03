@@ -2,6 +2,8 @@ package de.cadentem.pale_hound.entities.goals;
 
 import de.cadentem.pale_hound.entities.PaleHoundEntity;
 import java.util.EnumSet;
+import java.util.ArrayList;
+import de.cadentem.pale_hound.entities.navigation.HoundRoutes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.phys.Vec3;
@@ -47,7 +49,7 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
             return;
         }
         if (--repathDelay > 0) return;
-        repathDelay = 10;
+        repathDelay = 20;
         Vec3 away = hound.position().subtract(player.position()).multiply(1, 0, 1).normalize();
         if (away.lengthSqr() < 0.001) away = new Vec3(1, 0, 0);
         Vec3 fallback = hound.position().add(away.scale(12));
@@ -57,7 +59,16 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
             : player.position().add(away.scale(20));
         if (destination == null) destination = fallback;
         double speed = retreating ? 1.2 : 0.35;
-        boolean hasPath = hound.getNavigation().moveTo(destination.x, destination.y, destination.z, speed);
+        var candidates = new ArrayList<Vec3>();
+        candidates.add(destination);
+        // Try flanking routes along the same standoff ring rather than pressing into one obstacle.
+        double radius = backingOff ? 12 : 20;
+        Vec3 center = backingOff ? hound.position() : player.position();
+        candidates.add(center.add(away.yRot((float)(Math.PI / 3)).scale(radius)));
+        candidates.add(center.add(away.yRot((float)(-Math.PI / 3)).scale(radius)));
+        candidates.add(backingOff ? fallback : center.add(away.yRot((float)(Math.PI / 2)).scale(radius)));
+        var route = HoundRoutes.findReachable(hound, candidates);
+        boolean hasPath = route != null && hound.getNavigation().moveTo(route, speed);
         if (!hasPath && backingOff) {
             destination = fallback;
             hound.getNavigation().moveTo(destination.x, destination.y, destination.z, speed);

@@ -27,7 +27,7 @@ public class PaleHoundChaseGoal extends Goal {
       this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
       this.paleHound = paleHound;
       this.followTargetEvenIfNotSeen = followTargetEvenIfNotSeen;
-      this.ticksUntilLeave = Utils.secondsToTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE_CHASE.get());
+      this.ticksUntilLeave = Utils.presenceTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE_CHASE.get());
       this.maxSpeedReached = Utils.secondsToTicks(3);
    }
 
