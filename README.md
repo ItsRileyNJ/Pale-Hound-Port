@@ -22,7 +22,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.4-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.5-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -38,7 +38,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for twenty-nine in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for thirty in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -87,7 +87,8 @@ during this sequence so it can finish; removal is controlled by the server.
 occasional long cooldowns 20% shorter. The original base timer settings are retained;
 existing configs automatically receive the new setting when missing. With the original
 base values, the ordinary window is approximately 10m40s–16m and the long cooldown
-is 18m40s. Eligible player/location checks and the maximum entity count still apply.
+is 18m40s. These are the cave/base waits; the surface multipliers apply additionally.
+Eligible player/location checks and the maximum entity count still apply.
 Use `1.0` to restore the original spawn pacing. Noise timers are unaffected.
 
 ## Being spotted and attack targets
@@ -218,3 +219,21 @@ Use `./gradlew runClient -PclientAudioSmoke=DisposableWorld` for the optional in
 sound test. It fully decodes all 13 clips through Minecraft's JOrbis decoder and checks
 real packet delivery, playback priorities, encounter-scoped stop and logout cleanup.
 Use a disposable world: the fixture removes existing test Hounds and sets creative mode.
+
+## Less frequent surface encounters (1.10.5)
+
+`[Timers.Spawn].surface_spawn_timer_multiplier` defaults to `2.0`, doubling surface
+spawn waits and cooldowns. Existing configs receive this new setting automatically.
+With the other default settings, ordinary surface waits are about 21m20s–32m and the
+long cooldown is 37m20s. Cave waits remain about 10m40s–16m, with an 18m40s cooldown.
+Set the new value to `1.0` to restore the previous surface frequency.
+
+This spawn-only setting composes with the original `[Timers].surface_timer_multiplier`
+and the global spawn multiplier. It does not change noise/crying intervals, the forest
+chance bonus or biome eligibility. Being spotted still reduces the next wait by 75%,
+with the surface factor applying to that shortened wait too.
+
+`/pale_hound get_timer <dimension> spawn` now displays elapsed / effective target,
+including the surface factors for the timer's selected player, plus seconds remaining.
+The noise query also includes its existing surface factor. The dimension still shares
+one timer, and eligibility/valid spawn locations are still required after it is ready.

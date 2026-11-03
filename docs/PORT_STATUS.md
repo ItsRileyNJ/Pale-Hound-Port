@@ -317,3 +317,21 @@ integrated client smoke fully decodes all 13 complete streams using Minecraft's
 JOrbis decoder and checks real payload delivery, sound-engine playback, priority,
 source-scoped stopping and logout cleanup. OpenAL runs on a virtual null output, so
 physical listening/speaker balance remains for user testing.
+
+## Follow-up: reduce surface frequency (1.10.5)
+
+Added `surface_spawn_timer_multiplier = 2.0` under Timers.Spawn. The additional factor
+applies only when the timer's selected player is on the surface and composes with
+the original common surface multiplier. It doubles ordinary surface waits and long
+cooldowns without changing cave pacing, noise/crying timing, forest bonuses or biome
+rules. The new key is corrected into existing saved configs normally. The spotted
+quarter-wait reduction retains the surface factor.
+
+Timer readiness and the command use shared effective-target methods, so `get_timer`
+now reports the real adjusted threshold and remaining seconds rather than the base
+threshold. Raw timer access remains available for existing internal callers.
+
+All 30 server GameTests and nine resource/config checks pass. New coverage verifies
+the new default in an existing config, doubled surface readiness boundaries, unchanged
+cave/noise timing, composition with the original multiplier, quarter-wait scaling,
+and restoring previous surface pacing with multiplier 1.0.

@@ -244,6 +244,51 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void surfaceSpawnWaitLeavesCavesAndNoiseUnchanged(GameTestHelper helper) {
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "SurfaceTimerTest"));
+        Vec3 surface = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(2, 2, 2)));
+        player.setPos(surface);
+        double extra = ServerConfig.SURFACE_SPAWN_TIMER_MULTIPLIER.get();
+        double common = ServerConfig.SURFACE_TIMER_MULTIPLIER.get();
+        try {
+            helper.assertTrue(extra == 2.0, "Existing configs should receive the new doubled surface wait");
+            ServerConfig.SURFACE_TIMER_MULTIPLIER.set(1.0);
+            var timer = new de.cadentem.pale_hound.util.Timer(player);
+            timer.targetSpawn = 2000;
+            timer.targetNoise = 1000;
+            timer.currentSpawn = 2000;
+            timer.currentNoise = 1000;
+            helper.assertTrue(de.cadentem.pale_hound.util.Utils.isOnSurface(player), "Surface timer fixture should be above ground");
+            helper.assertTrue(timer.getEffectiveSpawnTarget() == 4000 && !timer.isSpawnTimerReached(), "Surface spawning should wait twice as long");
+            timer.currentSpawn = 3999;
+            helper.assertTrue(!timer.isSpawnTimerReached(), "Surface timer fired before its threshold");
+            timer.currentSpawn = 4000;
+            helper.assertTrue(timer.isSpawnTimerReached(), "Surface timer did not become eligible at its threshold");
+            helper.assertTrue(timer.getEffectiveNoiseTarget() == 1000 && timer.isNoiseTimerReached(), "New surface pacing must not slow crying/noise");
+            ServerConfig.SURFACE_TIMER_MULTIPLIER.set(1.5);
+            helper.assertTrue(timer.getEffectiveSpawnTarget() == 6000 && timer.getEffectiveNoiseTarget() == 1500,
+                "The original common surface multiplier should still compose with the new spawn setting");
+            player.setPos(surface.x, helper.getLevel().getMinBuildHeight(), surface.z);
+            helper.assertTrue(!de.cadentem.pale_hound.util.Utils.isOnSurface(player), "Underground timer fixture should be below ground");
+            timer.currentSpawn = 2000;
+            helper.assertTrue(timer.getEffectiveSpawnTarget() == 2000 && timer.isSpawnTimerReached(), "Cave wait should retain its previous value");
+            helper.assertTrue(timer.getEffectiveNoiseTarget() == 1000 && timer.isNoiseTimerReached(), "Cave noise timing should be unchanged");
+            player.setPos(surface);
+            ServerConfig.SURFACE_TIMER_MULTIPLIER.set(1.0);
+            timer.targetSpawn = 500;
+            helper.assertTrue(timer.getEffectiveSpawnTarget() == 1000, "The spotted quarter-wait must retain the surface pacing factor");
+            ServerConfig.SURFACE_SPAWN_TIMER_MULTIPLIER.set(1.0);
+            helper.assertTrue(timer.getEffectiveSpawnTarget() == 500, "Setting 1.0 should restore previous surface pacing");
+        } finally {
+            ServerConfig.SURFACE_SPAWN_TIMER_MULTIPLIER.set(extra);
+            ServerConfig.SURFACE_TIMER_MULTIPLIER.set(common);
+            player.discard();
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void directGazeTriggersRetreatAndShorterRespawn(GameTestHelper helper) {
         var hound = spawn(helper);
         hound.setNoAi(true);

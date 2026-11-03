@@ -230,6 +230,14 @@ public class PaleHound {
    }
 
    public static Pair<Integer, Integer> getTimer(String key, String type) {
+      return getTimer(key, type, false);
+   }
+
+   public static Pair<Integer, Integer> getEffectiveTimer(String key, String type) {
+      return getTimer(key, type, true);
+   }
+
+   private static Pair<Integer, Integer> getTimer(String key, String type, boolean effective) {
       Timer timer = TIMERS.get(key);
       int current = -1;
       int target = -1;
@@ -237,11 +245,11 @@ public class PaleHound {
          switch (type) {
             case "spawn":
                current = timer.currentSpawn;
-               target = timer.targetSpawn;
+               target = effective ? timer.getEffectiveSpawnTarget() : timer.targetSpawn;
                break;
             case "noise":
                current = timer.currentNoise;
-               target = timer.targetNoise;
+               target = effective ? timer.getEffectiveNoiseTarget() : timer.targetNoise;
          }
       }
 

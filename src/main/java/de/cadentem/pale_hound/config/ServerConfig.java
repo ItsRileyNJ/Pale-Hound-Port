@@ -14,6 +14,7 @@ public class ServerConfig {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final ModConfigSpec SPEC;
     public static ModConfigSpec.DoubleValue SPAWN_TIMER_MULTIPLIER;
+    public static ModConfigSpec.DoubleValue SURFACE_SPAWN_TIMER_MULTIPLIER;
     public static ModConfigSpec.DoubleValue PRESENCE_TIME_MULTIPLIER;
     public static ModConfigSpec.IntValue ROAM_RADIUS;
     public static ModConfigSpec.IntValue ROAM_INTERVAL;
@@ -118,6 +119,7 @@ public class ServerConfig {
         BUILDER.push("Timers");
         BUILDER.push("Spawn");
         SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Scale spawn waits and cooldowns; 0.8 means 20% shorter waits, 1.0 restores original timing. Does not affect noise timers.").defineInRange("spawn_timer_multiplier", 0.8, 0.1, 5.0);
+        SURFACE_SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Additional surface-only spawn wait multiplier; 2.0 doubles surface waits without changing cave or noise timers.").defineInRange("surface_spawn_timer_multiplier", 2.0, 0.1, 10.0);
         CAN_SPAWN_MIN = BUILDER.comment("Minimum time between spawns in seconds").defineInRange("can_spawn_min", 800, 0, 86400);
         CAN_SPAWN_MAX = BUILDER.comment("Maximum time between spawns in seconds").defineInRange("can_spawn_max", 1200, 0, 86400);
         CAN_SPAWN_COOLDOWN_CHANCE = BUILDER.comment("Chance for a spawn cooldown to occur").defineInRange("can_spawn_cooldown_chance", 0.3, 0.0, 1.0);

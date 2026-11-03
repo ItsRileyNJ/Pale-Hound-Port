@@ -23,15 +23,22 @@ public class Timer {
    }
 
    public boolean isSpawnTimerReached() {
-      return Utils.isOnSurface(this.currentVictim)
-         ? this.currentSpawn >= (int)(this.targetSpawn * (Double)ServerConfig.SURFACE_TIMER_MULTIPLIER.get())
-         : this.currentSpawn >= this.targetSpawn;
+      return this.currentSpawn >= this.getEffectiveSpawnTarget();
    }
 
    public boolean isNoiseTimerReached() {
+      return this.currentNoise >= this.getEffectiveNoiseTarget();
+   }
+
+   public int getEffectiveSpawnTarget() {
       return Utils.isOnSurface(this.currentVictim)
-         ? this.currentNoise >= (int)(this.targetNoise * (Double)ServerConfig.SURFACE_TIMER_MULTIPLIER.get())
-         : this.currentNoise >= this.targetNoise;
+         ? (int)(this.targetSpawn * ServerConfig.SURFACE_TIMER_MULTIPLIER.get() * ServerConfig.SURFACE_SPAWN_TIMER_MULTIPLIER.get())
+         : this.targetSpawn;
+   }
+
+   public int getEffectiveNoiseTarget() {
+      return Utils.isOnSurface(this.currentVictim)
+         ? (int)(this.targetNoise * ServerConfig.SURFACE_TIMER_MULTIPLIER.get()) : this.targetNoise;
    }
 
    public void resetNoiseTimer() {

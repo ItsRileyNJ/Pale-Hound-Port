@@ -111,6 +111,7 @@ class PortResources(unittest.TestCase):
                     self.assertIn(addition, block)
                     block = block.replace(addition, '')
                     for addition in [
+                        'SURFACE_SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Additional surface-only spawn wait multiplier; 2.0 doubles surface waits without changing cave or noise timers.").defineInRange("surface_spawn_timer_multiplier", 2.0, 0.1, 10.0);',
                         'PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);',
                         'ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);',
                         'ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);',

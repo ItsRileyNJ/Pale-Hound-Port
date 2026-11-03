@@ -133,12 +133,14 @@ public class ForgeEvents {
                         .executes(context -> {
                            String dimension = DimensionArgument.getDimension(context, "dimension").dimension().location().toString();
                            String type = StringArgumentType.getString(context, "type");
-                           Pair<Integer, Integer> timer = PaleHound.getTimer(dimension, type);
+                           Pair<Integer, Integer> timer = PaleHound.getEffectiveTimer(dimension, type);
                            if ((Integer)timer.getFirst() != -1 && (Integer)timer.getSecond() != -1) {
                               double currentSeconds = ((Integer)timer.getFirst()).intValue() / 20.0;
                               double targetSeconds = ((Integer)timer.getSecond()).intValue() / 20.0;
+                              double remainingSeconds = Math.max(0, timer.getSecond() - timer.getFirst()) / 20.0;
                               ((CommandSourceStack)context.getSource())
-                                 .sendSuccess(() -> Component.literal(currentSeconds + " / " + targetSeconds + " seconds"), true);
+                                 .sendSuccess(() -> Component.literal(currentSeconds + " / " + targetSeconds
+                                    + " seconds (elapsed / target; " + remainingSeconds + " remaining)"), true);
                            } else {
                               ((CommandSourceStack)context.getSource()).sendFailure(Component.literal("Timer for dimension [" + dimension + "] does not exist"));
                            }
