@@ -198,6 +198,44 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void shorterSpawnWaitsRespectSavedSettings(GameTestHelper helper) {
+        int min = ServerConfig.CAN_SPAWN_MIN.get();
+        int max = ServerConfig.CAN_SPAWN_MAX.get();
+        int cooldown = ServerConfig.CAN_SPAWN_COOLDOWN.get();
+        double cooldownChance = ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.get();
+        double multiplier = ServerConfig.SPAWN_TIMER_MULTIPLIER.get();
+        try {
+            helper.assertTrue(multiplier == 0.8, "Existing config should receive the new 0.8 multiplier default");
+            ServerConfig.CAN_SPAWN_MIN.set(100);
+            ServerConfig.CAN_SPAWN_MAX.set(100);
+            ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.set(0.0);
+            var timer = new de.cadentem.pale_hound.util.Timer();
+            helper.assertTrue(timer.targetSpawn >= 1600 && timer.targetSpawn < 1616,
+                "Custom 100-second spawn window should be scaled to about 80 seconds");
+            timer.currentSpawn = timer.targetSpawn - 1;
+            helper.assertTrue(!timer.isSpawnTimerReached(), "Spawn timer fired early");
+            timer.currentSpawn++;
+            helper.assertTrue(timer.isSpawnTimerReached(), "Shortened spawn timer did not become ready");
+            helper.assertTrue(timer.targetNoise >= ServerConfig.RESET_NOISE_MIN.get() * 20
+                && timer.targetNoise < (ServerConfig.RESET_NOISE_MAX.get() + 1) * 20, "Noise timing was changed");
+            ServerConfig.CAN_SPAWN_COOLDOWN.set(1400);
+            ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.set(1.0);
+            timer.resetSpawnTimer();
+            helper.assertTrue(timer.targetSpawn == 22400, "Long cooldown should also be 20% shorter");
+            ServerConfig.SPAWN_TIMER_MULTIPLIER.set(1.0);
+            timer.resetSpawnTimer();
+            helper.assertTrue(timer.targetSpawn == 28000, "Multiplier 1.0 should restore original cooldown");
+        } finally {
+            ServerConfig.CAN_SPAWN_MIN.set(min);
+            ServerConfig.CAN_SPAWN_MAX.set(max);
+            ServerConfig.CAN_SPAWN_COOLDOWN.set(cooldown);
+            ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.set(cooldownChance);
+            ServerConfig.SPAWN_TIMER_MULTIPLIER.set(multiplier);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

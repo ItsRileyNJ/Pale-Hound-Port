@@ -111,3 +111,18 @@ chance every five seconds. Existing active chases and fleeing still cannot be in
 A deterministic first-tick GameTest uses a roll between the old and new thresholds
 with a survival player inside the proximity-attack radius; stalking wins and attacks
 remain suppressed. All 8 server GameTests and 7 parity/resource checks pass.
+
+## Follow-up: slightly more frequent spawns
+
+Added `[Timers.Spawn].spawn_timer_multiplier` with default `0.8` and range 0.1–5.0.
+It scales both ordinary spawn windows and the occasional long cooldown when a timer
+is reset, without rewriting any of the original 32 option values. Existing configs
+receive the new key through normal config correction. Surface timing still stacks
+with this multiplier, while noise timers, spawn chance, entity cap and location rules
+retain their existing behavior. Config reload recreates timers using the new pacing.
+
+Build, all 9 server GameTests, and all 7 parity/resource checks pass. The added runtime
+test covers an existing config receiving the default, custom base settings being scaled,
+readiness at the shortened tick threshold, unchanged noise timing, cooldown scaling,
+and restoring original pacing with multiplier 1.0. The regression baseline continues
+to verify all original configuration defaults and categories, allowing only this new key.

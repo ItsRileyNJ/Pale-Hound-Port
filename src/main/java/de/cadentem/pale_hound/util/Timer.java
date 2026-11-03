@@ -69,7 +69,7 @@ public class Timer {
       }
 
       this.currentSpawn = 0;
-      this.targetSpawn = spawnTimer;
+      this.targetSpawn = (int)(spawnTimer * ServerConfig.SPAWN_TIMER_MULTIPLIER.get());
    }
 
    @Override

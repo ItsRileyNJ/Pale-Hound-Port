@@ -38,7 +38,7 @@ The seven Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for eight in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for nine in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -72,3 +72,12 @@ All attacks are blocked during stalking and retreat, including at melee distance
 After 30–45 seconds he runs away, then despawns after three seconds. Losing the player
 or leaving the surface starts the retreat early. His normal lifetime countdown pauses
 during this sequence so it can finish; removal is controlled by the server.
+
+## Spawn pacing
+
+`[Timers.Spawn].spawn_timer_multiplier` defaults to `0.8`, making spawn waits and
+occasional long cooldowns 20% shorter. The original base timer settings are retained;
+existing configs automatically receive the new setting when missing. With the original
+base values, the ordinary window is approximately 10m40s–16m and the long cooldown
+is 18m40s. Eligible player/location checks and the maximum entity count still apply.
+Use `1.0` to restore the original spawn pacing. Noise timers are unaffected.

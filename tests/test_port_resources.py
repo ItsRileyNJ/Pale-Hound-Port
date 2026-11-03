@@ -43,6 +43,11 @@ class PortResources(unittest.TestCase):
             with self.subTest(name=name):
                 source = (ROOT / f'src/main/java/de/cadentem/pale_hound/config/{name}.java').read_text()
                 block = source[source.index('    static {'):]
+                # The added spawn pacing knob is intentional; retain the original baseline for every old option.
+                if name == 'ServerConfig':
+                    addition = 'SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Scale spawn waits and cooldowns; 0.8 means 20% shorter waits, 1.0 restores original timing. Does not affect noise timers.").defineInRange("spawn_timer_multiplier", 0.8, 0.1, 5.0);'
+                    self.assertIn(addition, block)
+                    block = block.replace(addition, '')
                 normalized = re.sub(r'\s+', '', block).replace('(Object)500', '500')
                 self.assertEqual(digest(normalized.encode()), expected)
 

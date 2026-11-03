@@ -13,6 +13,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public class ServerConfig {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final ModConfigSpec SPEC;
+    public static ModConfigSpec.DoubleValue SPAWN_TIMER_MULTIPLIER;
     public static ModConfigSpec.IntValue CAN_SPAWN_MIN;
     public static ModConfigSpec.IntValue CAN_SPAWN_MAX;
     public static ModConfigSpec.IntValue CAN_SPAWN_COOLDOWN;
@@ -99,6 +100,7 @@ public class ServerConfig {
     static {
         BUILDER.push("Timers");
         BUILDER.push("Spawn");
+        SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Scale spawn waits and cooldowns; 0.8 means 20% shorter waits, 1.0 restores original timing. Does not affect noise timers.").defineInRange("spawn_timer_multiplier", 0.8, 0.1, 5.0);
         CAN_SPAWN_MIN = BUILDER.comment("Minimum time between spawns in seconds").defineInRange("can_spawn_min", 800, 0, 86400);
         CAN_SPAWN_MAX = BUILDER.comment("Maximum time between spawns in seconds").defineInRange("can_spawn_max", 1200, 0, 86400);
         CAN_SPAWN_COOLDOWN_CHANCE = BUILDER.comment("Chance for a spawn cooldown to occur").defineInRange("can_spawn_cooldown_chance", 0.3, 0.0, 1.0);
