@@ -38,7 +38,7 @@ The seven Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for four in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for six in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -54,3 +54,10 @@ translations retain existing entries and add the original subtitle text. Origina
 The source was recovered with Vineflower 1.11.1, checked against CFR 0.152, and mapped
 from 1.20.1 SRG names to Mojang names before API migration. The baseline records the
 original JAR SHA-256. Original author source was not supplied.
+
+## Crawling behavior
+
+The Hound now crawls in two-block-high tunnels and during an active chase within
+12 blocks of a living target. He returns to standing when neither condition applies.
+The crawl animation follows the synchronized posture, and crawl speed remains 0.35.
+This is an intentional behavior change requested after the original port.

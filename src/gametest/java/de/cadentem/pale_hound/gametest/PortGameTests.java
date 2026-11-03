@@ -71,6 +71,49 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void crawlsInLowTunnels(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        var roof = hound.blockPosition().above(2);
+        helper.getLevel().setBlockAndUpdate(roof, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+        hound.tick();
+        helper.assertTrue(hound.isCrawling(), "Two-block-high tunnel should trigger crawling");
+        helper.assertTrue(hound.getDimensions(Pose.STANDING).height() == 0.5F, "Tunnel crawl hitbox incorrect");
+        helper.getLevel().removeBlock(roof, false);
+        hound.tick();
+        helper.assertTrue(!hound.isCrawling(), "Open space should restore standing");
+        hound.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void crawlsDuringCloseChases(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        var target = net.minecraft.world.entity.EntityType.ZOMBIE.create(helper.getLevel());
+        target.setPos(hound.position().add(6, 0, 0));
+        hound.setTarget(target);
+        hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.CHASE;
+        hound.setAggressive(true);
+        hound.tick();
+        helper.assertTrue(hound.isCrawling(), "Close chase should trigger crawling");
+        helper.assertTrue(hound.getSpeedModifier() == 0.35, "Crawl speed changed");
+        target.setPos(hound.position().add(20, 0, 0));
+        hound.tick();
+        helper.assertTrue(!hound.isCrawling(), "Distant chase should restore standing");
+        target.setPos(hound.position().add(6, 0, 0));
+        hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.STARE;
+        hound.tick();
+        helper.assertTrue(!hound.isCrawling(), "Proximity alone should not trigger chase crawling");
+        hound.setTarget(null);
+        hound.discard();
+        target.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

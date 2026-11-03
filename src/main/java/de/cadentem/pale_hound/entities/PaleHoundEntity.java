@@ -209,7 +209,11 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          boolean isOffsetFacingTwoAboveSolid = this.level().getBlockState(this.blockPosition().offset(offset).above(2)).isSolid();
          boolean shouldCrouch = isTwoAboveSolid
             || !isOffsetFacingSolid && !isOffsetFacingAboveSolid && (isOffsetFacingTwoAboveSolid || isFacingSolid && isThreeAboveSolid);
-         boolean shouldCrawl = isAboveSolid || !isOffsetFacingSolid && isOffsetFacingAboveSolid || isFacingSolid && isTwoAboveSolid;
+         boolean closeChase = this.currentRoll == Roll.CHASE && this.isAggressive()
+            && this.getTarget() != null && this.getTarget().isAlive()
+            && this.distanceToSqr(this.getTarget()) <= 12.0 * 12.0;
+         boolean shouldCrawl = shouldCrouch || closeChase || isAboveSolid
+            || !isOffsetFacingSolid && isOffsetFacingAboveSolid || isFacingSolid && isTwoAboveSolid;
          if (this.isAggressive() || this.isFleeing) {
             this.entityData.set(SPOTTED_ACCESSOR, false);
          }
@@ -284,9 +288,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    private PlayState predicate(AnimationState<PaleHoundEntity> state) {
       boolean isCurrentAboveSolid = this.level().getBlockState(this.blockPosition().above()).isSolid();
-      boolean unsure = this.isCrawling() && this.level().getBlockState(this.blockPosition()).isSolid();
       boolean isCurrentTwoAboveSolid = this.level().getBlockState(this.blockPosition().above(2)).isSolid();
-      if (isCurrentAboveSolid || unsure) {
+      if (this.isCrawling() || isCurrentAboveSolid) {
          return state.setAndContinue(this.CRAWL);
       } else if (isCurrentTwoAboveSolid) {
          return state.isMoving() ? state.setAndContinue(this.CROUCH_RUN) : state.setAndContinue(this.CROUCH_IDLE);

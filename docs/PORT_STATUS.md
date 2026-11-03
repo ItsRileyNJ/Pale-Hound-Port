@@ -75,3 +75,12 @@ Exhaustive visual and multiplayer equivalence to the original is not claimed.
 
 The checklist above remains useful for exhaustive original-versus-port comparison;
 the automated tests do not establish complete visual or multiplayer equivalence.
+
+## Follow-up: more crawling
+
+Crawling now also replaces the crouch posture in low tunnels and activates during
+aggressive CHASE behavior within 12 blocks of a living target. The client animation
+uses the synchronized crawling state so the new behavior shows the crawl animation.
+Existing crawl dimensions and speed are retained. Two additional server GameTests
+verify tunnel entry/exit, close/distant chase transitions, and no proximity-only crawl
+while staring. All 6 required GameTests and all 7 parity/resource checks pass.
