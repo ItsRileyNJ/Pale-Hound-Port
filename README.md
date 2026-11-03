@@ -38,7 +38,7 @@ The seven Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for seven in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for eight in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -64,8 +64,9 @@ This is an intentional behavior change requested after the original port.
 
 ## Surface stalking
 
-While idle above ground, the Hound has a 50% chance every five seconds to begin
-stalking an eligible player within 64 blocks. This does not interrupt a chase or flee.
+On his first tick after spawning, an eligible surface Hound has a 90% chance to
+begin stalking a player within 64 blocks before normal attack targeting runs.
+If he remains idle, he retries at 90% every five seconds. This does not interrupt a chase or flee.
 He crawls after the player, aims to stay 16–24 blocks away, and backs off when approached.
 All attacks are blocked during stalking and retreat, including at melee distance.
 After 30–45 seconds he runs away, then despawns after three seconds. Losing the player

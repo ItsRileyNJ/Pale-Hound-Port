@@ -88,8 +88,8 @@ while staring. All 6 required GameTests and all 7 parity/resource checks pass.
 
 ## Follow-up: passive surface stalking and retreat
 
-Idle surface hounds roll a 50% stalking chance every 100 ticks for an eligible player
-within 64 blocks. Active chases and flee behavior are not interrupted. Stalking lasts
+Idle surface hounds roll a 90% stalking chance immediately on their first tick,
+then every 100 ticks for an eligible player within 64 blocks. Active chases and flee behavior are not interrupted. Stalking lasts
 600–900 ticks, keeps a 16–24 block distance band at crawl speed, and backs away when
 approached. The new goal holds movement/look control while combat targeting and all
 melee attacks are suppressed. A synchronized fleeing pose replaces crawling for the
@@ -102,3 +102,12 @@ attack-start exclusion, pathing toward a distant player without closing to melee
 backoff pathing, waiting at the distance band, passive behavior at melee range, stalking
 duration, transition to running, and eventual despawn. Original goal regression checks
 explicitly allow the new chase-continuation guard while comparing the rest to the input.
+
+## Follow-up: prefer stalking over attacking
+
+The initial surface stalking check now precedes target acquisition on the first tick,
+with a 90% acceptance chance (increased from 50%). Idle retries use the same 90%
+chance every five seconds. Existing active chases and fleeing still cannot be interrupted.
+A deterministic first-tick GameTest uses a roll between the old and new thresholds
+with a survival player inside the proximity-attack radius; stalking wins and attacks
+remain suppressed. All 8 server GameTests and 7 parity/resource checks pass.

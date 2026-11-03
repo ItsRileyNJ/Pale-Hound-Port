@@ -174,6 +174,30 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void prefersStalkingBeforeProximityAttack(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoGravity(true);
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "SpawnStalkTest"));
+        player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+        player.setPos(hound.position().add(6, 0, 0));
+        helper.getLevel().addNewPlayer(player);
+        try {
+            // Seed zero rolls about 0.73: rejected by the old 50% threshold, accepted by 90%.
+            hound.getRandom().setSeed(0);
+            hound.tick();
+            helper.assertTrue(hound.isSurfaceStalking(), "Eligible spawn should prefer stalking on its first tick");
+            helper.assertTrue(hound.isCrawling() && !hound.isAggressive() && hound.getTarget() == null,
+                "Proximity attack should not win over the initial stalking choice");
+            helper.assertTrue(!hound.doHurtTarget(player), "Preferred stalking must remain passive");
+        } finally {
+            hound.discard();
+            helper.getLevel().removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

@@ -82,7 +82,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private Player surfaceStalkTarget;
    private int surfaceStalkTicks;
    private int surfaceRetreatTicks;
-   private int surfaceStalkCheckTicks = 100;
+   // Prefer stalking before ordinary target acquisition gets a chance on the first tick.
+   private int surfaceStalkCheckTicks;
    public boolean isFleeing;
    public boolean hasSpawned;
    public boolean pleaseStopMoving;
@@ -216,7 +217,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private void updateSurfaceStalking() {
       if (!this.isSurfaceStalking() && --this.surfaceStalkCheckTicks <= 0) {
          this.surfaceStalkCheckTicks = 100;
-         if (this.getRandom().nextFloat() < 0.5F) {
+         if (this.getRandom().nextFloat() < 0.9F) {
             Player player = this.level().getNearestPlayer(this.getX(), this.getY(), this.getZ(), 64,
                candidate -> Utils.isValidTarget(candidate) && Utils.isOnSurface(candidate));
             this.tryStartSurfaceStalking(player);
