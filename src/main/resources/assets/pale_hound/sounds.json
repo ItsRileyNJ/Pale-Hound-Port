@@ -1,0 +1,170 @@
+  {
+  "cavenoise_1": {
+    "subtitle": "Nearby Breathing",
+    "sounds": [
+      "pale_hound:cavenoise_1"
+    ]
+  },
+  "cavenoise_2": {
+    "subtitle": "Wind Howls",
+    "sounds": [
+      "pale_hound:cavenoise_2"
+    ]
+  },
+  "cavenoise_3": {
+    "subtitle": "Silent Crying",
+    "sounds": [
+      "pale_hound:cavenoise_3"
+    ]
+  },
+  "cavenoise_4": {
+    "subtitle": "Distant Barking",
+    "sounds": [
+      "pale_hound:cavenoise_4"
+    ]
+  },
+  "wolf_whine": {
+    "subtitle": "Wolf pants",
+    "sounds": [
+      "pale_hound:wolf_whine"
+    ]
+  },
+    "wolf_panting": {
+      "subtitle": "Wolf pants",
+      "sounds": [
+        "pale_hound:wolf_panting"
+      ]
+    },
+    "wolf_idle1": {
+      "subtitle": "Wolf pants",
+      "sounds": [
+        "pale_hound:wolf_idle1"
+      ]
+    },
+    "wolf_idle2": {
+      "subtitle": "Wolf pants",
+      "sounds": [
+        "pale_hound:wolf_idle2"
+      ]
+    },
+    "wolf_idle3": {
+      "subtitle": "Wolf pants",
+      "sounds": [
+        "pale_hound:wolf_idle3"
+      ]
+    },
+    "wolf_howl1": {
+      "subtitle": "Wolf howls",
+      "sounds": [
+        "pale_hound:wolf_howl1"
+      ]
+    },
+    "wolf_howl2": {
+      "subtitle": "Nightmarish Howl",
+      "sounds": [
+        "pale_hound:wolf_howl2"
+      ]
+    },
+    "chase_step_1": {
+    "subtitle": "Heavy Footsteps",
+    "sounds": [
+      "pale_hound:chase_step_1"
+    ]
+  },
+  "chase_step_2": {
+    "subtitle": "Heavy Footsteps",
+    "sounds": [
+      "pale_hound:chase_step_2"
+    ]
+  },
+  "chase_step_3": {
+    "subtitle": "Heavy Footsteps",
+    "sounds": [
+      "pale_hound:chase_step_3"
+    ]
+  },
+  "chase_step_4": {
+    "subtitle": "Heavy Footsteps",
+    "sounds": [
+      "pale_hound:chase_step_4"
+    ]
+  },
+  "chase_1": {
+    "subtitle": "Horrifying Screaming",
+    "sounds": [
+      "pale_hound:chase_1"
+    ]
+  },
+  "chase_2": {
+    "subtitle": "Terrifying Snarls",
+    "sounds": [
+      "pale_hound:chase_2"
+    ]
+  },
+  "chase_3": {
+    "subtitle": "Unsettling Cries",
+    "sounds": [
+      "pale_hound:chase_3"
+    ]
+  },
+  "chase_4": {
+    "subtitle": "Frightening Snarling",
+    "sounds": [
+      "pale_hound:chase_4"
+    ]
+  },
+  "flee_1": {
+    "subtitle": "The Hound Runs",
+    "sounds": [
+      "pale_hound:flee_1"
+    ]
+  },
+  "flee_2": {
+    "subtitle": "The Hound Flees",
+    "sounds": [
+      "pale_hound:flee_2"
+    ]
+  },
+  "disappear": {
+    "subtitle": "The Hound Runs Away",
+    "sounds": [
+      "pale_hound:disappear"
+    ]
+  },
+  "spotted": {
+    "subtitle": "Deafening Silence",
+    "sounds": [
+      "pale_hound:spotted"
+    ]
+  },
+  "hound_death": {
+    "subtitle": "Blood-Curdling Howl",
+    "sounds": [
+      "pale_hound:hound_death"
+    ]
+  },
+  "hound_hurt_1": {
+    "subtitle": "The Hound Grunts",
+    "sounds": [
+      "pale_hound:hound_hurt_1"
+    ]
+  },
+  "hound_hurt_2": {
+    "subtitle": "The Hound Growls",
+    "sounds": [
+      "pale_hound:hound_hurt_2"
+    ]
+  },
+  "hound_hurt_3": {
+    "subtitle": "The Hound Spits",
+    "sounds": [
+      "pale_hound:hound_hurt_3"
+    ]
+  },
+  "hound_hurt_4": {
+    "subtitle": "The Hound Rattles",
+    "sounds": [
+      "pale_hound:hound_hurt_4"
+    ]
+  }
+}

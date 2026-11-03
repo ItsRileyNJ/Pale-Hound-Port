@@ -1,0 +1,15 @@
+{
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_21",
+  "package": "de.cadentem.pale_hound.mixin",
+  "mixins": [
+    "MixinLivingEntity",
+    "MixinGroundPathNavigation",
+    "MixinPathNavigation"
+  ],
+  "client": [],
+  "required": true,
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

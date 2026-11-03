@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="pale_hound"
+version="1.10.0-neoforge-1.21.1"
+displayName="The Pale Hound"
+authors="TheSpukuz, Llamii_Llama."
+credits="Original Cave Dweller: Gargin. Reimagined CD: Cadentem, Schpalrbo. NeoForge port from supplied 1.10.0 JAR."
+logoFile="logo.png"
+description='''Palid and starving, gazing and snarling, hidden away inside the gloom within the snow.'''
+
+[[mixins]]
+config="pale_hound.mixins.json"
+
+[[dependencies.pale_hound]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.262,21.2)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.pale_hound]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.pale_hound]]
+modId="geckolib"
+type="required"
+versionRange="[4.9.3,5)"
+ordering="AFTER"
+side="BOTH"

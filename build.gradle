@@ -1,0 +1,47 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = '1.10.0-neoforge-1.21.1'
+group = 'de.cadentem.pale_hound'
+base.archivesName = 'Pale_Hound'
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = '21.1.262'
+    runs {
+        client {
+            client()
+            if (project.hasProperty('clientAssetSmoke')) {
+                systemProperty 'pale_hound.clientAssetSmoke', 'true'
+            }
+        }
+        server { server(); programArgument '--nogui' }
+        gameTestServer {
+            type = 'gameTestServer'
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'pale_hound'
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', 'pale_hound', '--all', '--output', file('src/generated/resources').absolutePath, '--existing', file('src/main/resources').absolutePath
+        }
+    }
+    mods {
+        pale_hound { sourceSet(sourceSets.main) }
+    }
+}
+
+dependencies {
+    implementation files('libs/geckolib-neoforge-1.21.1-4.9.3.jar')
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+// Smoke tests are available to development launches, excluded from the distributable.
+sourceSets.main.java.srcDir 'src/gametest/java'
+sourceSets.main.resources.srcDir 'src/gametest/resources'
+tasks.named('jar') {
+    exclude 'de/cadentem/pale_hound/gametest/**'
+    exclude 'data/pale_hound/structure/port_test.nbt'
+}
