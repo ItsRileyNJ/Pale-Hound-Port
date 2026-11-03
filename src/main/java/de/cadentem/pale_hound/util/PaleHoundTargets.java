@@ -24,7 +24,7 @@ public final class PaleHoundTargets {
     public static boolean isAllowed(Entity entity) {
         if (!Utils.isValidTarget(entity)) return false;
         return entity instanceof Player || entity instanceof Sheep || entity instanceof Villager
-            || entity instanceof IronGolem || entity instanceof Wolf wolf && wolf.isTame()
+            || entity instanceof IronGolem || entity instanceof Wolf
             || MERCENARIES_AND_CARAVANS.contains(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()))
             || entity.getType() == EntityType.HORSE && entity.getPersistentData().hasUUID("FFMCaravan");
     }

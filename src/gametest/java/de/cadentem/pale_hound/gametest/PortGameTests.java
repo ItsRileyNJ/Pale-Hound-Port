@@ -302,7 +302,8 @@ public final class PortGameTests {
         var hound = spawn(helper);
         try {
             for (var type : java.util.List.of(net.minecraft.world.entity.EntityType.SHEEP,
-                net.minecraft.world.entity.EntityType.VILLAGER, net.minecraft.world.entity.EntityType.IRON_GOLEM)) {
+                net.minecraft.world.entity.EntityType.VILLAGER, net.minecraft.world.entity.EntityType.IRON_GOLEM,
+                net.minecraft.world.entity.EntityType.WOLF)) {
                 var target = (net.minecraft.world.entity.LivingEntity)type.create(helper.getLevel());
                 helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundTargets.isAllowed(target), "Allowed target rejected: " + type);
                 hound.setTarget(target);
@@ -310,7 +311,7 @@ public final class PortGameTests {
                 target.discard();
             }
             for (var type : java.util.List.of(net.minecraft.world.entity.EntityType.COW, net.minecraft.world.entity.EntityType.ZOMBIE,
-                net.minecraft.world.entity.EntityType.PILLAGER, net.minecraft.world.entity.EntityType.WOLF,
+                net.minecraft.world.entity.EntityType.PILLAGER,
                 net.minecraft.world.entity.EntityType.HORSE, net.minecraft.world.entity.EntityType.WANDERING_TRADER)) {
                 var target = (net.minecraft.world.entity.LivingEntity)type.create(helper.getLevel());
                 float health = target.getHealth();

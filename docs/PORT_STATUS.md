@@ -138,9 +138,8 @@ into ordinary subsequent spawn resets, and repeated ticks cannot reapply it afte
 
 A centralized target policy now filters nearest-mob acquisition, target assignment,
 attack eligibility/retaliation, and final melee damage. It permits players, sheep,
-villagers, iron golems, tamed wolves, the supplied mod's defender and three caravan
-entity types, and its UUID-marked caravan horses. It excludes ordinary horses, wild
-wolves, generic wandering traders, zombies, pillagers and other unlisted entities.
+villagers, iron golems, wolves (wild and tamed), the supplied mod's defender and three caravan
+entity types, and its UUID-marked caravan horses. It excludes ordinary horses, generic wandering traders, zombies, pillagers and other unlisted entities.
 The earlier close-chase test now uses an allowed sheep instead of an excluded zombie.
 
 Build and all 11 server GameTests pass both without the optional mod and with the
@@ -152,4 +151,4 @@ The optional JAR is neither required nor redistributed. All 7 parity/resource ch
 The new runtime tests also cover looking away, occluded gaze, direct gaze, immediate
 retreat, despawn, the exact one-off 75% reduction, unchanged noise timing, ordinary
 subsequent timer resets, excluded targets not taking melee damage or provoking
-retaliation, tame versus wild wolves, and marked versus ordinary horses.
+retaliation, both tame and wild wolves being allowed, and marked versus ordinary horses.

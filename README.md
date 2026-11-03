@@ -90,10 +90,10 @@ After the three-second retreat/despawn, that dimension's next spawn wait is rese
 25% of the configured wait (including the spawn-timer multiplier). This bonus applies
 once; later successful spawns use normal timing. Normal spawn eligibility rules remain.
 
-Attack targets are restricted to players, sheep, villagers, iron golems, tamed wolves,
+Attack targets are restricted to players, sheep, villagers, iron golems, wolves (wild and tamed),
 and Fantasy Feudalism: Mercenaries entities `villagerscontract:defender`,
 `caravan_villager`, `caravan_trader`, and `caravan_mule`. Horses bearing that mod's
-`FFMCaravan` UUID are also recognized as caravan members. Ordinary horses, wild wolves,
+`FFMCaravan` UUID are also recognized as caravan members. Ordinary horses,
 wandering traders and other mobs are excluded, including from retaliation. Stalking
 and retreat still suppress attacks against every target.
 
