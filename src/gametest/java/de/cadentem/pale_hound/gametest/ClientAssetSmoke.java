@@ -22,11 +22,11 @@ public final class ClientAssetSmoke {
         var model = new PaleHoundModel();
         if (model.getBakedModel(ResourceLocation.fromNamespaceAndPath("pale_hound", "geo/pale_hound.geo.json")) == null)
             throw new AssertionError("Pale Hound model failed to bake");
-        for (String animation : new String[]{"new_run", "run_idle", "crouch_run_new", "crouch_idle", "calm_move", "calm_idle", "spotted", "crawl", "crawl_idle", "crawl_low", "crawl_low_idle", "flee"}) {
+        for (String animation : new String[]{"new_run", "run_idle", "crouch_run_new", "crouch_idle", "calm_move", "calm_idle", "spotted", "crawl", "crawl_idle", "crawl_tunnel", "crawl_tunnel_idle", "crawl_low", "crawl_low_idle", "flee"}) {
             if (model.getAnimation(null, "animation.pale_hound." + animation) == null)
                 throw new AssertionError("Missing animation: " + animation);
         }
-        PaleHound.LOG.info("CLIENT ASSET SMOKE PASSED: model and all 12 used animations loaded");
+        PaleHound.LOG.info("CLIENT ASSET SMOKE PASSED: model and all 14 used animations loaded");
         minecraft.stop();
     }
 }

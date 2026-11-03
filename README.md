@@ -22,7 +22,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.1-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.2-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -38,7 +38,7 @@ The eight Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for twenty-two in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for twenty-three in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -61,9 +61,12 @@ original JAR SHA-256. Original author source was not supplied.
 The Hound now crawls in two-block-high tunnels and during an active chase within
 12 blocks of a living target. He returns to standing when neither condition applies and his entire standing bounding box fits.
 He anticipates low ceilings along his path and remains low until clear of roof edges.
-The crawl animation follows the synchronized posture, with a hunched four-point stance,
+The crawl animation follows the synchronized posture, with a tall, hunched four-point stance,
 bent limbs, planted-foot phases and a still idle pose. The neck stays attached to the shoulders
-and skull; head turns are limited while crawling. A compressed variation fits one-block tunnels.
+and skull; head turns are limited while crawling. The open-ground head is about 2.15 blocks
+high, with shoulders about 1.85 blocks high. Collision-shape checks choose the previous
+medium pose under two-block ceilings and a compressed pose in tighter passages,
+including slab ceilings, tunnel entrances and partially overlapping roof edges.
 Gait playback follows movement speed; the crawl posture multiplier remains 0.35.
 This is an intentional behavior change requested after the original port.
 
@@ -159,3 +162,8 @@ land samples fail. Ground projections remain bounded to loaded chunks and safe
 landing endpoints. Narrow turns follow waypoint centers, and a finished crawling
 path no longer falls back to pushing straight toward a wall. Failed replanning clears
 the stale destination when climbing is unavailable.
+
+Version 1.10.2 raises the open-ground crouch using the original long front limbs, higher
+hips and shoulders, while keeping the front elbows flared and the paws grounded.
+Moving and stationary poses use the same heights. The lower tunnel poses, movement
+speed reduction and cave navigation improvements remain available.

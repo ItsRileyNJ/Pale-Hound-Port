@@ -240,5 +240,23 @@ gives the nearest coordinates, or the searched dimension and counts in other loa
 dimensions when none are found locally. The integrated client test now creates its
 Hound through the actual natural encounter spawn helper and verifies private glow,
 off and expiry. This passes in the Overworld; the reported visible-Hound/zero-count
-case has not been reproduced in this environment and needs the user's entity-selector
-result to isolate. Version 1.10.1 distinguishes this build from earlier 1.10.0 ports.
+case was not reproduced in this environment. The user subsequently confirmed that
+highlighting found the Hound; the outline remains subject to client tracking range.
+These changes shipped in 1.10.1.
+
+## Follow-up: taller crouch (1.10.2)
+
+The open-ground four-point crouch raises the hips and shoulders, restores the front
+limbs to their original lengths, and re-solves bent limbs with outward front elbows.
+Paw positions/orientations are preserved through the moving gait; the head remains
+connected and projects forward. The neutral skull reaches about 2.15 blocks, with
+shoulders about 1.85 blocks above the ground. The former regular crawl is retained as
+a medium tunnel pose, and its compressed variant remains the lowest pose.
+
+Collision-shape checks over the body's full width and forward-projecting head select
+tall, medium or low moving and idle poses from the available headroom. This also handles slabs and partial
+roof-edge overlaps. The existing navigation clearance and speed reduction are retained.
+All 23 server GameTests and eight resource checks pass; added coverage checks all
+three pose selections and the slab/roof-edge transitions. All fourteen used animations
+load through GeckoLib, and the tall pose is inspected from player eye height in the
+disposable integrated client world.

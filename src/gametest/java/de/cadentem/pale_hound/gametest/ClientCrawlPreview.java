@@ -62,8 +62,8 @@ public final class ClientCrawlPreview {
             level.addFreshEntity(hound);
             entityId = hound.getId();
             player.setGameMode(GameType.SPECTATOR);
-            player.teleportTo(origin.x + 2.5, origin.y - 0.6, origin.z + 3.5);
-            player.lookAt(EntityAnchorArgument.Anchor.EYES, origin.add(0.5, 0.5, 0));
+            player.teleportTo(origin.x + 2.5, origin.y, origin.z + 4.5);
+            player.lookAt(EntityAnchorArgument.Anchor.EYES, origin.add(0.5, 1.2, 0));
         });
     }
 }

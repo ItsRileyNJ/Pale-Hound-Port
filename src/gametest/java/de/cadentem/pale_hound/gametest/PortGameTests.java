@@ -517,6 +517,36 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void crouchedAnimationFitsAvailableHeadroom(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(4, 1, 3))));
+        hound.setCrawling(true);
+        try {
+            helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.TALL, "Open space should use the tall intimidating crouch");
+            helper.setBlock(4, 3, 3, net.minecraft.world.level.block.Blocks.STONE);
+            helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.TUNNEL, "Two-block tunnel should use the medium crouch");
+            helper.setBlock(4, 2, 3, net.minecraft.world.level.block.Blocks.STONE_SLAB.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SLAB_TYPE,
+                    net.minecraft.world.level.block.state.properties.SlabType.TOP));
+            helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.LOW, "Partial slab clearance should use the low crawl");
+            helper.setBlock(4, 2, 3, net.minecraft.world.level.block.Blocks.AIR);
+            helper.setBlock(4, 3, 3, net.minecraft.world.level.block.Blocks.AIR);
+            helper.setBlock(5, 3, 3, net.minecraft.world.level.block.Blocks.STONE);
+            hound.setPos(hound.position().add(0.4, 0, 0));
+            helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.TUNNEL, "A partial roof-edge overlap must prevent the tall pose");
+            helper.setBlock(5, 3, 3, net.minecraft.world.level.block.Blocks.AIR);
+            hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(4, 1, 3))));
+            hound.yBodyRot = 0;
+            helper.setBlock(4, 3, 4, net.minecraft.world.level.block.Blocks.STONE);
+            helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.TUNNEL,
+                "Forward-projecting head should lower before reaching a tunnel entrance");
+        } finally { hound.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void staysLowUntilEntireBodyClearsRoof(GameTestHelper helper) {
         var hound = spawn(helper);
         hound.setNoAi(true);

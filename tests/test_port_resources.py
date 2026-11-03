@@ -36,6 +36,8 @@ class PortResources(unittest.TestCase):
         actual['animations'].pop('animation.pale_hound.crawl_idle')
         actual['animations'].pop('animation.pale_hound.crawl_low')
         actual['animations'].pop('animation.pale_hound.crawl_low_idle')
+        actual['animations'].pop('animation.pale_hound.crawl_tunnel')
+        actual['animations'].pop('animation.pale_hound.crawl_tunnel_idle')
         self.assertEqual(actual, expected)
         name = 'assets/pale_hound/lang/en_us.json'
         expected = dict(BASE['migrated_assets'][name])
@@ -46,20 +48,21 @@ class PortResources(unittest.TestCase):
 
     def test_grounded_crawl_loops_and_idle_pose(self):
         animations = json.loads((RES / 'assets/pale_hound/animations/pale_hound.animation.json').read_text())['animations']
-        crawl = animations['animation.pale_hound.crawl']
-        idle = animations['animation.pale_hound.crawl_idle']
-        self.assertTrue(crawl['loop'])
-        for bone in crawl['bones'].values():
-            for channel in bone.values():
-                if isinstance(channel, dict):
-                    self.assertEqual(channel['0.0000'], channel['1.6000'])
-                    values = list(channel.values())
-                    for left, right in zip(values, values[1:]):
-                        self.assertLess(max(abs(a - b) for a, b in zip(left, right)), 60)
-        for bone in idle['bones'].values():
-            for channel in bone.values():
-                self.assertIsInstance(channel, list)  # No swimming/stroking while standing still.
-        for normal, low in [('crawl', 'crawl_low'), ('crawl_idle', 'crawl_low_idle')]:
+        for moving, stationary in [('crawl', 'crawl_idle'), ('crawl_tunnel', 'crawl_tunnel_idle'), ('crawl_low', 'crawl_low_idle')]:
+            crawl = animations['animation.pale_hound.' + moving]
+            idle = animations['animation.pale_hound.' + stationary]
+            self.assertTrue(crawl['loop'])
+            for bone in crawl['bones'].values():
+                for channel in bone.values():
+                    if isinstance(channel, dict):
+                        self.assertEqual(channel['0.0000'], channel['1.6000'])
+                        values = list(channel.values())
+                        for left, right in zip(values, values[1:]):
+                            self.assertLess(max(abs(a - b) for a, b in zip(left, right)), 60)
+            for bone in idle['bones'].values():
+                for channel in bone.values():
+                    self.assertIsInstance(channel, list)  # No swimming/stroking while standing still.
+        for normal, low in [('crawl_tunnel', 'crawl_low'), ('crawl_tunnel_idle', 'crawl_low_idle')]:
             normal_bones = animations['animation.pale_hound.' + normal]['bones']
             low_bones = dict(animations['animation.pale_hound.' + low]['bones'])
             base = low_bones.pop('base')

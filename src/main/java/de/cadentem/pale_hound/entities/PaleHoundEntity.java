@@ -75,6 +75,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private final RawAnimation IS_SPOTTED = RawAnimation.begin().then("animation.pale_hound.spotted", LoopType.LOOP);
    private final RawAnimation CRAWL = RawAnimation.begin().then("animation.pale_hound.crawl", LoopType.LOOP);
    private final RawAnimation CRAWL_IDLE = RawAnimation.begin().then("animation.pale_hound.crawl_idle", LoopType.LOOP);
+   private final RawAnimation CRAWL_TUNNEL = RawAnimation.begin().then("animation.pale_hound.crawl_tunnel", LoopType.LOOP);
+   private final RawAnimation CRAWL_TUNNEL_IDLE = RawAnimation.begin().then("animation.pale_hound.crawl_tunnel_idle", LoopType.LOOP);
    private final RawAnimation CRAWL_LOW = RawAnimation.begin().then("animation.pale_hound.crawl_low", LoopType.LOOP);
    private final RawAnimation CRAWL_LOW_IDLE = RawAnimation.begin().then("animation.pale_hound.crawl_low_idle", LoopType.LOOP);
    private final RawAnimation FLEE = RawAnimation.begin().then("animation.pale_hound.flee", LoopType.LOOP);
@@ -420,11 +422,20 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       boolean isCurrentTwoAboveSolid = this.level().getBlockState(this.blockPosition().above(2)).isSolid();
       state.getController().setAnimationSpeed(1.0);
       if (this.isCrawling() || isCurrentAboveSolid) {
-         if (!state.isMoving()) return state.setAndContinue(isCurrentAboveSolid ? this.CRAWL_LOW_IDLE : this.CRAWL_IDLE);
+         CrawlPose pose = this.getCrawlPose();
+         if (!state.isMoving()) return state.setAndContinue(switch (pose) {
+            case TALL -> this.CRAWL_IDLE;
+            case TUNNEL -> this.CRAWL_TUNNEL_IDLE;
+            case LOW -> this.CRAWL_LOW_IDLE;
+         });
          Vec3 velocity = this.getDeltaMovement();
          double speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
          state.getController().setAnimationSpeed(Math.max(0.75, Math.min(3.0, speed * 50)));
-         return state.setAndContinue(isCurrentAboveSolid ? this.CRAWL_LOW : this.CRAWL);
+         return state.setAndContinue(switch (pose) {
+            case TALL -> this.CRAWL;
+            case TUNNEL -> this.CRAWL_TUNNEL;
+            case LOW -> this.CRAWL_LOW;
+         });
       } else if (isCurrentTwoAboveSolid) {
          return state.isMoving() ? state.setAndContinue(this.CROUCH_RUN) : state.setAndContinue(this.CROUCH_IDLE);
       } else if (this.isAggressive()) {
@@ -573,6 +584,22 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    protected void playHurtSound(@NotNull DamageSource pSource) {
       SoundEvent soundevent = this.chooseHurtSound();
       this.playEntitySound(soundevent, 2.0F, 1.0F);
+   }
+
+   public enum CrawlPose { TALL, TUNNEL, LOW }
+
+   public CrawlPose getCrawlPose() {
+      double halfWidth = 0.25 * this.getScale();
+      var tallBounds = new net.minecraft.world.phys.AABB(this.getX() - halfWidth, this.getY() + 0.000001,
+         this.getZ() - halfWidth, this.getX() + halfWidth, this.getY() + 2.7 * this.getScale() - 0.000001,
+         this.getZ() + halfWidth);
+      Vec3 forward = Vec3.directionFromRotation(0, this.yBodyRot).scale(1.25 * this.getScale());
+      tallBounds = tallBounds.expandTowards(forward.x, 0, forward.z);
+      // Check collision shapes, including slabs and partial roof-edge overlaps.
+      if (!this.level().getBlockCollisions(this, tallBounds).iterator().hasNext()) return CrawlPose.TALL;
+      var tunnelBounds = new net.minecraft.world.phys.AABB(tallBounds.minX, tallBounds.minY, tallBounds.minZ,
+         tallBounds.maxX, this.getY() + 2.0 * this.getScale() - 0.000001, tallBounds.maxZ);
+      return this.level().getBlockCollisions(this, tunnelBounds).iterator().hasNext() ? CrawlPose.LOW : CrawlPose.TUNNEL;
    }
 
    private boolean hasStandingClearance(Vec3 position) {
