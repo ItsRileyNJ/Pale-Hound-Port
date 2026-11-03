@@ -125,6 +125,7 @@ public class Utils {
          int zOffset = Mth.randomBetweenInclusive(level.random, -xzOffset, xzOffset);
          mutableBlockPosition.setWithOffset(blockPosition, xOffset, yOffset, zOffset);
          if (level.getWorldBorder().isWithinBounds(mutableBlockPosition) && moveToPossibleSpawnPosition(level, yOffset, mutableBlockPosition, strategy)) {
+            if (!PaleHoundBiomes.isAllowed(level.getBiome(mutableBlockPosition))) continue;
             T entity = (T)entityType.create(level, null, mutableBlockPosition, spawnType, false, false);
             if (entity instanceof PaleHoundEntity) {
                if (entity.checkSpawnRules(level, spawnType) && entity.checkSpawnObstruction(level)) {

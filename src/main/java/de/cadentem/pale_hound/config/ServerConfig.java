@@ -27,6 +27,7 @@ public class ServerConfig {
     public static ModConfigSpec.IntValue TIME_UNTIL_LEAVE_CHASE;
     public static ModConfigSpec.DoubleValue SURFACE_TIMER_MULTIPLIER;
     public static ModConfigSpec.DoubleValue SPAWN_CHANCE_PER_TICK;
+    public static ModConfigSpec.DoubleValue FOREST_SPAWN_CHANCE_MULTIPLIER;
     public static ModConfigSpec.ConfigValue<Integer> SPAWN_HEIGHT;
     public static ModConfigSpec.BooleanValue ALLOW_SURFACE_SPAWN;
     public static ModConfigSpec.IntValue SKY_LIGHT_LEVEL;
@@ -49,6 +50,18 @@ public class ServerConfig {
     public static ModConfigSpec.DoubleValue MOVEMENT_SPEED;
     public static ModConfigSpec.DoubleValue DEPTH_STRIDER_BONUS;
     public static ModConfigSpec.BooleanValue ONLY_PLAY_NOISE_TO_TARGET;
+
+    public static final List<String> DEFAULT_SURFACE_BIOME_BLACKLIST = List.of("minecraft:badlands", "minecraft:wooded_badlands", "minecraft:eroded_badlands", "minecraft:desert");
+    public static final List<String> LEGACY_SURFACE_BIOME_BLACKLIST = List.of("minecraft:badlands", "minecraft:bamboo_jungle", "minecraft:basalt_deltas", "minecraft:beach", "minecraft:birch_forest", "minecraft:cold_ocean", "minecraft:crimson_forest", "minecraft:dark_forest", "minecraft:deep_cold_ocean", "minecraft:deep_frozen_ocean", "minecraft:deep_lukewarm_ocean", "minecraft:deep_ocean", "minecraft:desert", "minecraft:eroded_badlands", "minecraft:flower_forest", "minecraft:forest", "minecraft:grove", "minecraft:jungle", "minecraft:lukewarm_ocean", "minecraft:mangrove_swamp", "minecraft:meadow", "minecraft:mushroom_fields", "minecraft:ocean", "minecraft:old_growth_birch_forest", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:plains", "minecraft:river", "minecraft:savanna", "minecraft:savanna_plateau", "minecraft:sparse_jungle", "minecraft:stony_peaks", "minecraft:stony_shore", "minecraft:sunflower_plains", "minecraft:swamp", "minecraft:taiga", "minecraft:warm_ocean", "minecraft:windswept_forest", "minecraft:windswept_gravelly_hills", "minecraft:wooded_woodlands");
+
+    public static boolean migrateDefaultBiomeBlacklist() {
+        if (OVERRIDE_BIOME_DATAPACK_CONFIG.get() && !SURFACE_BIOMES_IS_WHITELIST.get()
+            && new java.util.HashSet<>(SURFACE_BIOMES.get()).equals(new java.util.HashSet<>(LEGACY_SURFACE_BIOME_BLACKLIST))) {
+            SURFACE_BIOMES.set(DEFAULT_SURFACE_BIOME_BLACKLIST);
+            return true;
+        }
+        return false;
+    }
 
     private static boolean resourcePredicate(Object element) {
         if (element == null) {
@@ -85,6 +98,7 @@ public class ServerConfig {
         if (level instanceof ServerLevel) {
             ServerLevel serverLevel = (ServerLevel)level;
             Holder biome = serverLevel.getBiome(entity.blockPosition());
+            if (!de.cadentem.pale_hound.util.PaleHoundBiomes.isAllowed(biome)) return false;
             boolean isWhitelist = (Boolean)SURFACE_BIOMES_IS_WHITELIST.get();
             boolean isBiomeInList = false;
             if (((Boolean)OVERRIDE_BIOME_DATAPACK_CONFIG.get()).booleanValue()) {
@@ -121,6 +135,7 @@ public class ServerConfig {
         SURFACE_TIMER_MULTIPLIER = BUILDER.comment("Modify the timers for the surface (to reduce or increase them), based on the general timer set (e.g. spawn timer of 300 seconds -> 0.3 turns it into 90 seconds and 1.7 turns it into 510 seconds for the surface)").defineInRange("surface_timer_multiplier", 1.0, 0.0, 5.0);
         BUILDER.pop();
         BUILDER.push("Spawn Conditions");
+        FOREST_SPAWN_CHANCE_MULTIPLIER = BUILDER.comment("Scale the ready-to-spawn chance in forested biomes; 1.25 is a 25% bonus. Does not change timers.").defineInRange("forest_spawn_chance_multiplier", 1.25, 0.0, 5.0);
         SPAWN_CHANCE_PER_TICK = BUILDER.comment("The spawn chance per tick (once the spawn timer is finished)").defineInRange("spawn_chance_per_tick", 0.005, 0.0, 1.0);
         SPAWN_HEIGHT = BUILDER.comment("Depth at which the Pale Hound can start to spawn").define("spawn_height", 500);
         ALLOW_SURFACE_SPAWN = BUILDER.comment("Whether the Pale Hound can spawn on the surface or not").define("allow_surface_spawn", true);
@@ -135,7 +150,7 @@ public class ServerConfig {
         BUILDER.push("Biomes");
         OVERRIDE_BIOME_DATAPACK_CONFIG = BUILDER.comment("If you don't want to create a datapack to configure the biomes").define("override_biome_datapack_config", true);
         SURFACE_BIOMES_IS_WHITELIST = BUILDER.comment("Use the surface biome list either as white- or blacklist").define("surface_biomes_is_whitelist", false);
-        SURFACE_BIOMES = BUILDER.comment("Either white- or blacklist of the surface biomes the Pale Hound can spawn in (Syntax: modid:biome, e.g. `minecraft:plains`)").defineList("surface_biomes", List.of("minecraft:badlands", "minecraft:bamboo_jungle", "minecraft:basalt_deltas", "minecraft:beach", "minecraft:birch_forest", "minecraft:cold_ocean", "minecraft:crimson_forest", "minecraft:dark_forest", "minecraft:deep_cold_ocean", "minecraft:deep_frozen_ocean", "minecraft:deep_lukewarm_ocean", "minecraft:deep_ocean", "minecraft:desert", "minecraft:eroded_badlands", "minecraft:flower_forest", "minecraft:forest", "minecraft:grove", "minecraft:jungle", "minecraft:lukewarm_ocean", "minecraft:mangrove_swamp", "minecraft:meadow", "minecraft:mushroom_fields", "minecraft:ocean", "minecraft:old_growth_birch_forest", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:plains", "minecraft:river", "minecraft:savanna", "minecraft:savanna_plateau", "minecraft:sparse_jungle", "minecraft:stony_peaks", "minecraft:stony_shore", "minecraft:sunflower_plains", "minecraft:swamp", "minecraft:taiga", "minecraft:warm_ocean", "minecraft:windswept_forest", "minecraft:windswept_gravelly_hills", "minecraft:wooded_woodlands"), ServerConfig::resourcePredicate);
+        SURFACE_BIOMES = BUILDER.comment("Either white- or blacklist of the surface biomes the Pale Hound can spawn in (Syntax: modid:biome, e.g. `minecraft:plains`)").defineList("surface_biomes", DEFAULT_SURFACE_BIOME_BLACKLIST, ServerConfig::resourcePredicate);
         BUILDER.pop();
         BUILDER.pop();
         BUILDER.push("Behaviour");

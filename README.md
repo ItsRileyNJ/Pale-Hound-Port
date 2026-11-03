@@ -22,7 +22,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.2-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.3-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -38,7 +38,7 @@ The eight Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for twenty-three in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for twenty-seven in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -167,3 +167,23 @@ Version 1.10.2 raises the open-ground crouch using the original long front limbs
 hips and shoulders, while keeping the front elbows flared and the paws grounded.
 Moving and stationary poses use the same heights. The lower tunnel poses, movement
 speed reduction and cave navigation improvements remain available.
+
+## Biomes and forest preference (1.10.3)
+
+All biomes are eligible by default except deserts and badlands/Mesa, including wooded
+and eroded badlands. The exclusions apply to both the selected player's biome and
+the actual spawn candidate, so a biome-border encounter cannot place him in a desert.
+Modded variants are recognized through common biome tags and biome paths containing
+`desert`, `badlands` or `mesa`. Existing dimension, light, height, path and entity-cap
+checks still control whether an eligible biome can produce an encounter.
+
+Forested biomes get a 25% bonus to the per-tick spawn roll after the timer finishes: the
+default 0.5% becomes 0.625% when the selected player is in a forested biome. Forests,
+taigas, jungles, mangrove swamps and appropriately tagged modded forests qualify.
+Timers and cooldowns use their existing settings. `["Spawn Conditions"].forest_spawn_chance_multiplier`
+defaults to `1.25`; set it to `1.0` for equal chances.
+
+Existing configs using the original default surface blacklist automatically migrate to
+the four excluded vanilla biomes on load/reload. Custom lists and whitelist/datapack
+modes are retained as additional restrictions. Datapacks can extend
+`pale_hound:blocked_spawn_biomes` and `pale_hound:forested_spawn_biomes`.

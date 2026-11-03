@@ -1,0 +1,42 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#minecraft:is_forest",
+      "required": false
+    },
+    {
+      "id": "#minecraft:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#minecraft:is_jungle",
+      "required": false
+    },
+    {
+      "id": "#c:is_forest",
+      "required": false
+    },
+    {
+      "id": "#c:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#c:is_jungle",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/deciduous",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/coniferous",
+      "required": false
+    },
+    {
+      "id": "#c:is_tree/jungle",
+      "required": false
+    },
+    "minecraft:mangrove_swamp"
+  ]
+}

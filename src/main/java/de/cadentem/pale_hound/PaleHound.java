@@ -11,6 +11,7 @@ import de.cadentem.pale_hound.registry.ModItems;
 import de.cadentem.pale_hound.registry.ModSounds;
 import de.cadentem.pale_hound.util.Timer;
 import de.cadentem.pale_hound.util.Utils;
+import de.cadentem.pale_hound.util.PaleHoundBiomes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -137,7 +138,7 @@ public class PaleHound {
 
             if (timer.isSpawnTimerReached()
                && paleHoundCount.get() < (Integer)ServerConfig.MAXIMUM_AMOUNT.get()
-               && RANDOM.nextDouble() <= (Double)ServerConfig.SPAWN_CHANCE_PER_TICK.get()
+               && RANDOM.nextDouble() < PaleHoundBiomes.spawnChance(timer.currentVictim)
                && timer.currentVictim != null) {
                Optional<PaleHoundEntity> optionalEntity = Utils.trySpawnMob(
                   timer.currentVictim,
@@ -189,6 +190,7 @@ public class PaleHound {
          return false;
       } else {
          Level serverLevel = player.level();
+         if (!PaleHoundBiomes.isAllowed(serverLevel.getBiome(player.blockPosition()))) return false;
          int actualSkyLightLevel = serverLevel.getBrightness(LightLayer.SKY, player.blockPosition()) - serverLevel.getSkyDarken();
          float sunAngle = serverLevel.getSunAngle(1.0F);
          if (actualSkyLightLevel > 0) {

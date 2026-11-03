@@ -84,9 +84,13 @@ class PortResources(unittest.TestCase):
                         'PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);',
                         'ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);',
                         'ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);',
+                        'FOREST_SPAWN_CHANCE_MULTIPLIER = BUILDER.comment("Scale the ready-to-spawn chance in forested biomes; 1.25 is a 25% bonus. Does not change timers.").defineInRange("forest_spawn_chance_multiplier", 1.25, 0.0, 5.0);',
                     ]:
                         self.assertIn(addition, block)
                         block = block.replace(addition, '')
+                    # The new default blacklist deliberately replaces the original surface list.
+                    legacy = re.search(r'LEGACY_SURFACE_BIOME_BLACKLIST = (List\.of\(.*?\));', source).group(1)
+                    block = block.replace('DEFAULT_SURFACE_BIOME_BLACKLIST', legacy)
                 normalized = re.sub(r'\s+', '', block).replace('(Object)500', '500')
                 self.assertEqual(digest(normalized.encode()), expected)
 

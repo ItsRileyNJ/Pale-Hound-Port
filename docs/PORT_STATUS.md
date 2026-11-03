@@ -260,3 +260,27 @@ All 23 server GameTests and eight resource checks pass; added coverage checks al
 three pose selections and the slab/roof-edge transitions. All fourteen used animations
 load through GeckoLib, and the tall pose is inspected from player eye height in the
 disposable integrated client world.
+
+## Follow-up: broad biome eligibility and forest bonus (1.10.3)
+
+- The default surface blacklist now contains desert, badlands, wooded badlands and
+  eroded badlands. The old untouched default blacklist migrates on config load/reload
+  and is saved; custom lists, whitelists and datapack modes remain additional controls.
+- A shared biome policy excludes desert and badlands/Mesa families using datapack and
+  common tags plus a name fallback for untagged modded variants. It runs during player
+  eligibility checks and at the actual candidate location before entity creation,
+  covering underground biomes and biome-border candidates too.
+- Added `forest_spawn_chance_multiplier = 1.25` in Spawn Conditions. Eligible forested
+  player biomes receive a 25% higher ready-to-spawn roll; probability is capped at 1.
+  Vanilla/common forest, taiga, jungle and tree tags, plus mangrove swamps, identify
+  forested biomes. Spawn/noise timers, cooldowns and remaining eligibility checks are retained.
+- Biome tags have matching data-generation definitions.
+
+Build and all 27 server GameTests pass. New tests cover every vanilla biome, forest
+bonuses, wooded-badlands exclusion, synthetic modded tags and names, one-time default
+config migration, and retaining custom settings. A native spawn-helper integration
+test rejects a desert candidate and successfully spawns at the same position after
+switching its biome to plains under identical nighttime conditions. The runtime log
+and saved TOML confirm the original default list migrated to the four exclusions.
+All eight resource/config regression checks pass, allowing the intentional blacklist
+change and new forest setting.

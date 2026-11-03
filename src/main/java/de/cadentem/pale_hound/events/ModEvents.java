@@ -10,6 +10,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.EventBusSubscriber.Bus;
 import net.neoforged.fml.event.config.ModConfigEvent.Reloading;
+import net.neoforged.fml.event.config.ModConfigEvent.Loading;
 
 @EventBusSubscriber(
    modid = "pale_hound",
@@ -22,8 +23,21 @@ public class ModEvents {
    }
 
    @SubscribeEvent
+   public static void loadConfiguration(Loading event) {
+      if (event.getConfig().getSpec() == ServerConfig.SPEC) migrateBiomeConfig();
+   }
+
+   private static void migrateBiomeConfig() {
+      if (ServerConfig.migrateDefaultBiomeBlacklist()) {
+         ServerConfig.SPEC.save();
+         PaleHound.LOG.info("Updated the original surface biome blacklist: only deserts and badlands/Mesa remain excluded");
+      }
+   }
+
+   @SubscribeEvent
    public static void reloadConfiguration(Reloading event) {
       if (event.getConfig().getSpec() == ServerConfig.SPEC) {
+         migrateBiomeConfig();
          PaleHound.RELOAD_ALL = true;
          PaleHound.LOG.info("Server configuration has been reloaded");
       }

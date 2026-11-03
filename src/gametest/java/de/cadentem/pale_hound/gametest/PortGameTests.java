@@ -690,6 +690,129 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void biomePolicyAndForestBonus(GameTestHelper helper) {
+        var registry = helper.getLevel().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME);
+        var excluded = java.util.Set.of("badlands", "wooded_badlands", "eroded_badlands", "desert");
+        for (var holder : registry.holders().toList()) {
+            var id = holder.key().location();
+            if (!id.getNamespace().equals("minecraft")) continue;
+            helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundBiomes.isAllowed(holder) == !excluded.contains(id.getPath()),
+                "Unexpected biome eligibility: " + id);
+        }
+        double base = ServerConfig.SPAWN_CHANCE_PER_TICK.get();
+        for (var key : java.util.List.of(net.minecraft.world.level.biome.Biomes.FOREST,
+            net.minecraft.world.level.biome.Biomes.DARK_FOREST, net.minecraft.world.level.biome.Biomes.TAIGA,
+            net.minecraft.world.level.biome.Biomes.JUNGLE, net.minecraft.world.level.biome.Biomes.MANGROVE_SWAMP)) {
+            double chance = de.cadentem.pale_hound.util.PaleHoundBiomes.spawnChance(registry.getHolderOrThrow(key));
+            helper.assertTrue(Math.abs(chance - Math.min(1, base * ServerConfig.FOREST_SPAWN_CHANCE_MULTIPLIER.get())) < 0.0000001,
+                "Forested biome did not receive its bonus: " + key.location());
+        }
+        helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundBiomes.spawnChance(
+            registry.getHolderOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS)) == base, "Plains should retain base chance");
+        helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundBiomes.spawnChance(
+            registry.getHolderOrThrow(net.minecraft.world.level.biome.Biomes.WOODED_BADLANDS)) == 0,
+            "Wooded badlands must remain blocked despite having trees");
+        helper.succeed();
+    }
+
+    private static net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> testBiome(GameTestHelper helper, String path,
+        net.minecraft.tags.TagKey<net.minecraft.world.level.biome.Biome> tag) {
+        var registry = new net.minecraft.core.MappedRegistry<net.minecraft.world.level.biome.Biome>(
+            net.minecraft.core.registries.Registries.BIOME, com.mojang.serialization.Lifecycle.stable());
+        var value = helper.getLevel().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME)
+            .getHolderOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS).value();
+        var holder = registry.register(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.BIOME,
+            ResourceLocation.fromNamespaceAndPath("test", path)), value, net.minecraft.core.RegistrationInfo.BUILT_IN);
+        registry.freeze();
+        registry.bindTags(tag == null ? java.util.Map.of() : java.util.Map.of(tag, java.util.List.of(holder)));
+        return holder;
+    }
+
+    @GameTest(template = "port_test")
+    public static void moddedBiomeTagsAndNames(GameTestHelper helper) {
+        for (String path : java.util.List.of("red_mesa", "rocky_badlands", "white_desert"))
+            helper.assertTrue(!de.cadentem.pale_hound.util.PaleHoundBiomes.isAllowed(testBiome(helper, path, null)),
+                "Untagged modded desert/Mesa variant should be blocked: " + path);
+        var dry = testBiome(helper, "dry_basin", net.neoforged.neoforge.common.Tags.Biomes.IS_DESERT);
+        helper.assertTrue(!de.cadentem.pale_hound.util.PaleHoundBiomes.isAllowed(dry), "Modded desert tag must be recognized");
+        var woods = testBiome(helper, "enchanted_woods", de.cadentem.pale_hound.util.PaleHoundBiomes.FORESTED);
+        helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundBiomes.isAllowed(woods), "Modded forest should be eligible");
+        helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundBiomes.spawnChance(woods)
+            == Math.min(1, ServerConfig.SPAWN_CHANCE_PER_TICK.get() * ServerConfig.FOREST_SPAWN_CHANCE_MULTIPLIER.get()),
+            "Modded forest tag should receive the same bonus");
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void oldBiomeBlacklistMigratesOnce(GameTestHelper helper) {
+        var original = ServerConfig.SURFACE_BIOMES.get();
+        boolean whitelist = ServerConfig.SURFACE_BIOMES_IS_WHITELIST.get();
+        boolean override = ServerConfig.OVERRIDE_BIOME_DATAPACK_CONFIG.get();
+        try {
+            ServerConfig.OVERRIDE_BIOME_DATAPACK_CONFIG.set(true);
+            ServerConfig.SURFACE_BIOMES_IS_WHITELIST.set(false);
+            ServerConfig.SURFACE_BIOMES.set(ServerConfig.LEGACY_SURFACE_BIOME_BLACKLIST);
+            helper.assertTrue(ServerConfig.migrateDefaultBiomeBlacklist(), "Old default blacklist should migrate");
+            helper.assertTrue(ServerConfig.SURFACE_BIOMES.get().equals(ServerConfig.DEFAULT_SURFACE_BIOME_BLACKLIST), "Incorrect migrated blacklist");
+            helper.assertTrue(!ServerConfig.migrateDefaultBiomeBlacklist(), "Migration must be idempotent");
+            ServerConfig.SURFACE_BIOMES.set(java.util.List.of("minecraft:forest"));
+            helper.assertTrue(!ServerConfig.migrateDefaultBiomeBlacklist(), "A custom blacklist must be retained");
+            ServerConfig.SURFACE_BIOMES_IS_WHITELIST.set(true);
+            ServerConfig.SURFACE_BIOMES.set(ServerConfig.LEGACY_SURFACE_BIOME_BLACKLIST);
+            helper.assertTrue(!ServerConfig.migrateDefaultBiomeBlacklist(), "A configured whitelist must not be rewritten");
+        } finally {
+            ServerConfig.SURFACE_BIOMES.set(original);
+            ServerConfig.SURFACE_BIOMES_IS_WHITELIST.set(whitelist);
+            ServerConfig.OVERRIDE_BIOME_DATAPACK_CONFIG.set(override);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void actualSpawnSiteRespectsBiomeExclusion(GameTestHelper helper) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var level = helper.getLevel();
+        var pos = helper.absolutePos(new BlockPos(4, 1, 3));
+        var originalBiome = level.getBiome(pos).unwrapKey().orElseThrow().location();
+        var source = level.getServer().createCommandSourceStack().withLevel(level).withPermission(4).withSuppressedOutput();
+        String fill = "fillbiome " + (pos.getX() - 2) + " " + (pos.getY() - 2) + " " + (pos.getZ() - 2) + " "
+            + (pos.getX() + 2) + " " + (pos.getY() + 2) + " " + (pos.getZ() + 2) + " ";
+        var commands = level.getServer().getCommands().getDispatcher();
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "BiomeSpawnTest"));
+        long originalTime = level.getDayTime();
+        int distance = ServerConfig.SPAWN_DISTANCE.get();
+        boolean checkPath = ServerConfig.CHECK_PATH_TO_SPAWN.get();
+        try {
+            helper.setBlock(4, 0, 3, net.minecraft.world.level.block.Blocks.STONE);
+            for (int y = 1; y <= 4; ++y) helper.setBlock(4, y, 3, net.minecraft.world.level.block.Blocks.AIR);
+            ServerConfig.SPAWN_DISTANCE.set(0);
+            ServerConfig.CHECK_PATH_TO_SPAWN.set(false);
+            level.setDayTime(18000);
+            level.updateSkyBrightness();
+            commands.execute(fill + "minecraft:desert", source);
+            helper.assertTrue(level.getBiome(pos).is(net.minecraft.world.level.biome.Biomes.DESERT), "Desert test biome was not applied");
+            var blocked = de.cadentem.pale_hound.util.Utils.trySpawnMob(player, ModEntityTypes.PALE_HOUND.get(),
+                net.minecraft.world.entity.MobSpawnType.TRIGGERED, level, pos, 1, 0, 1,
+                net.minecraft.util.SpawnUtil.Strategy.ON_TOP_OF_COLLIDER);
+            helper.assertTrue(blocked.isEmpty(), "Desert candidate must not spawn a Hound");
+            commands.execute(fill + "minecraft:plains", source);
+            var allowed = de.cadentem.pale_hound.util.Utils.trySpawnMob(player, ModEntityTypes.PALE_HOUND.get(),
+                net.minecraft.world.entity.MobSpawnType.TRIGGERED, level, pos, 1, 0, 1,
+                net.minecraft.util.SpawnUtil.Strategy.ON_TOP_OF_COLLIDER);
+            helper.assertTrue(allowed.isPresent(), "Same position in an allowed biome should spawn successfully");
+            allowed.ifPresent(PaleHoundEntity::discard);
+        } finally {
+            ServerConfig.SPAWN_DISTANCE.set(distance);
+            ServerConfig.CHECK_PATH_TO_SPAWN.set(checkPath);
+            commands.execute(fill + originalBiome, source);
+            level.setDayTime(originalTime);
+            level.updateSkyBrightness();
+            player.discard();
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

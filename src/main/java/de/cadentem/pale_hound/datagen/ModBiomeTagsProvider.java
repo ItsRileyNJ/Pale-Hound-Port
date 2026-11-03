@@ -24,5 +24,18 @@ public class ModBiomeTagsProvider extends BiomeTagsProvider {
 
    protected void addTags(@NotNull Provider provider) {
       this.tag(PALE_HOUND_SURFACE_BIOMES).addOptionalTag(Biomes.IS_SPOOKY.location());
+      this.tag(de.cadentem.pale_hound.util.PaleHoundBiomes.BLOCKED)
+         .add(net.minecraft.world.level.biome.Biomes.BADLANDS, net.minecraft.world.level.biome.Biomes.WOODED_BADLANDS,
+            net.minecraft.world.level.biome.Biomes.ERODED_BADLANDS, net.minecraft.world.level.biome.Biomes.DESERT)
+         .addOptionalTag(net.minecraft.tags.BiomeTags.IS_BADLANDS.location())
+         .addOptionalTag(Biomes.IS_BADLANDS.location()).addOptionalTag(Biomes.IS_DESERT.location());
+      this.tag(de.cadentem.pale_hound.util.PaleHoundBiomes.FORESTED)
+         .addOptionalTag(net.minecraft.tags.BiomeTags.IS_FOREST.location())
+         .addOptionalTag(net.minecraft.tags.BiomeTags.IS_TAIGA.location())
+         .addOptionalTag(net.minecraft.tags.BiomeTags.IS_JUNGLE.location())
+         .addOptionalTag(Biomes.IS_FOREST.location()).addOptionalTag(Biomes.IS_TAIGA.location())
+         .addOptionalTag(Biomes.IS_JUNGLE.location()).addOptionalTag(Biomes.IS_DECIDUOUS_TREE.location())
+         .addOptionalTag(Biomes.IS_CONIFEROUS_TREE.location()).addOptionalTag(Biomes.IS_JUNGLE_TREE.location())
+         .add(net.minecraft.world.level.biome.Biomes.MANGROVE_SWAMP);
    }
 }
