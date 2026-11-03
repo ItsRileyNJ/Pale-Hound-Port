@@ -11,6 +11,7 @@ import de.cadentem.pale_hound.entities.goals.PaleHoundStrollGoal;
 import de.cadentem.pale_hound.entities.goals.PaleHoundTargetSeesMeGoal;
 import de.cadentem.pale_hound.entities.goals.PaleHoundTargetTooCloseGoal;
 import de.cadentem.pale_hound.entities.goals.Roll;
+import de.cadentem.pale_hound.entities.goals.PaleHoundSurfaceStalkGoal;
 import de.cadentem.pale_hound.network.CaveSound;
 import de.cadentem.pale_hound.network.NetworkHandler;
 import de.cadentem.pale_hound.registry.ModSounds;
@@ -78,6 +79,10 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public static final EntityDataAccessor<Boolean> SPOTTED_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> CLIMBING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public Roll currentRoll = Roll.STROLL;
+   private Player surfaceStalkTarget;
+   private int surfaceStalkTicks;
+   private int surfaceRetreatTicks;
+   private int surfaceStalkCheckTicks = 100;
    public boolean isFleeing;
    public boolean hasSpawned;
    public boolean pleaseStopMoving;
@@ -148,6 +153,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    protected void registerGoals() {
       this.goalSelector.addGoal(1, new FloatGoal(this));
+      this.goalSelector.addGoal(1, new PaleHoundSurfaceStalkGoal(this));
       this.goalSelector.addGoal(1, new PaleHoundBreakBlocksGoal(this));
       this.goalSelector.addGoal(2, new PaleHoundChaseGoal(this, true));
       this.goalSelector.addGoal(2, new PaleHoundFleeGoal(this, 40.0F, 1.2));
@@ -178,10 +184,74 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       return ServerConfig.ALLOW_RIDING.get() ? super.startRiding(vehicle, force) : false;
    }
 
+   public boolean isSurfaceStalking() {
+      return this.surfaceStalkTarget != null;
+   }
+
+   public Player getSurfaceStalkTarget() {
+      return this.surfaceStalkTarget;
+   }
+
+   @Override
+   public boolean doHurtTarget(Entity target) {
+      return !this.isSurfaceStalking() && super.doHurtTarget(target);
+   }
+
+   public boolean isSurfaceStalkRetreating() {
+      return this.surfaceRetreatTicks > 0;
+   }
+
+   public boolean tryStartSurfaceStalking(Player player) {
+      if (this.isSurfaceStalking() || this.isAggressive() || this.isFleeing
+         || this.currentRoll == Roll.CHASE || this.currentRoll == Roll.FLEE
+         || !Utils.isValidTarget(player) || !Utils.isOnSurface(this) || !Utils.isOnSurface(player)
+         || this.distanceToSqr(player) > 64 * 64) return false;
+      this.surfaceStalkTarget = player;
+      this.surfaceStalkTicks = this.getRandom().nextIntBetweenInclusive(600, 900);
+      this.surfaceRetreatTicks = 0;
+      this.getNavigation().stop();
+      return true;
+   }
+
+   private void updateSurfaceStalking() {
+      if (!this.isSurfaceStalking() && --this.surfaceStalkCheckTicks <= 0) {
+         this.surfaceStalkCheckTicks = 100;
+         if (this.getRandom().nextFloat() < 0.5F) {
+            Player player = this.level().getNearestPlayer(this.getX(), this.getY(), this.getZ(), 64,
+               candidate -> Utils.isValidTarget(candidate) && Utils.isOnSurface(candidate));
+            this.tryStartSurfaceStalking(player);
+         }
+      }
+      if (this.isSurfaceStalking()) {
+         if (this.isSurfaceStalkRetreating()) {
+            if (--this.surfaceRetreatTicks <= 0) {
+               this.disappear();
+               return;
+            }
+         } else if (--this.surfaceStalkTicks <= 0 || !Utils.isValidTarget(this.surfaceStalkTarget)
+            || !Utils.isOnSurface(this) || !Utils.isOnSurface(this.surfaceStalkTarget)
+            || this.distanceToSqr(this.surfaceStalkTarget) > 80 * 80) {
+            this.surfaceRetreatTicks = 60;
+            this.getNavigation().stop();
+         }
+         this.setTarget(null);
+         this.setAggressive(false);
+         this.currentRoll = Roll.STROLL;
+         this.isFleeing = this.isSurfaceStalkRetreating();
+         this.entityData.set(FLEEING_ACCESSOR, this.isFleeing);
+         this.setSpotted(false);
+         this.pleaseStopMoving = false;
+         this.setInvisible(false);
+      }
+      this.targetSelector.setControlFlag(net.minecraft.world.entity.ai.goal.Goal.Flag.TARGET, !this.isSurfaceStalking());
+   }
+
    public void tick() {
-      this.ticksTillRemove--;
-      if (this.ticksTillRemove <= 0) {
+      if (!this.level().isClientSide()) this.updateSurfaceStalking();
+      if (this.isRemoved()) return;
+      if (!this.level().isClientSide() && !this.isSurfaceStalking() && --this.ticksTillRemove <= 0) {
          this.disappear();
+         return;
       }
 
       if (this.goalSelector.getAvailableGoals().isEmpty() || this.targetSelector.getAvailableGoals().isEmpty()) {
@@ -212,7 +282,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          boolean closeChase = this.currentRoll == Roll.CHASE && this.isAggressive()
             && this.getTarget() != null && this.getTarget().isAlive()
             && this.distanceToSqr(this.getTarget()) <= 12.0 * 12.0;
-         boolean shouldCrawl = shouldCrouch || closeChase || isAboveSolid
+         boolean shouldCrawl = (this.isSurfaceStalking() && !this.isSurfaceStalkRetreating()) || shouldCrouch || closeChase || isAboveSolid
             || !isOffsetFacingSolid && isOffsetFacingAboveSolid || isFacingSolid && isTwoAboveSolid;
          if (this.isAggressive() || this.isFleeing) {
             this.entityData.set(SPOTTED_ACCESSOR, false);
@@ -233,6 +303,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    }
 
    public double getSpeedModifier() {
+      if (this.isSurfaceStalkRetreating()) return 1.2;
       return this.isCrawling() ? 0.35 : (this.isCrouching() ? 0.6 : 0.85);
    }
 

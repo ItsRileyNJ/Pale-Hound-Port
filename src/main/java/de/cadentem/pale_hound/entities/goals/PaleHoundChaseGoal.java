@@ -66,6 +66,9 @@ public class PaleHoundChaseGoal extends Goal {
    }
 
    public boolean canContinueToUse() {
+      if (this.paleHound.isSurfaceStalking()) {
+         return false;
+      }
       LivingEntity target = this.paleHound.getTarget();
       if (this.paleHound.isOnFire() && target instanceof Player && this.paleHound.getRandom().nextDouble() < 0.05) {
          this.paleHound.currentRoll = Roll.FLEE;

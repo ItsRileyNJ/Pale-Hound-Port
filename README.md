@@ -38,7 +38,7 @@ The seven Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for six in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for seven in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -61,3 +61,13 @@ The Hound now crawls in two-block-high tunnels and during an active chase within
 12 blocks of a living target. He returns to standing when neither condition applies.
 The crawl animation follows the synchronized posture, and crawl speed remains 0.35.
 This is an intentional behavior change requested after the original port.
+
+## Surface stalking
+
+While idle above ground, the Hound has a 50% chance every five seconds to begin
+stalking an eligible player within 64 blocks. This does not interrupt a chase or flee.
+He crawls after the player, aims to stay 16–24 blocks away, and backs off when approached.
+All attacks are blocked during stalking and retreat, including at melee distance.
+After 30–45 seconds he runs away, then despawns after three seconds. Losing the player
+or leaving the surface starts the retreat early. His normal lifetime countdown pauses
+during this sequence so it can finish; removal is controlled by the server.

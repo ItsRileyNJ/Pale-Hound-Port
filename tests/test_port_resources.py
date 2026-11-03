@@ -54,6 +54,7 @@ class PortResources(unittest.TestCase):
                 body = body.replace('maxUpStep()', 'getStepHeight()')
                 body = body.replace('EventHooks.canEntityGrief', 'ForgeEventFactory.getMobGriefingEvent')
                 body = body.replace('HalfTransparentBlock', 'AbstractGlassBlock')
+                body = re.sub(r'if \(this\.paleHound\.isSurfaceStalking\(\)\) \{\s*return false;\s*\}', '', body)
                 self.assertEqual(digest(re.sub(r'\s+', '', body).encode()), expected)
 
     def test_loot_migrated_without_changing_pools(self):

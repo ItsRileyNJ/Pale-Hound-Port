@@ -8,7 +8,8 @@ Exhaustive visual and multiplayer equivalence to the original is not claimed.
 - NeoForge mod entry point, deferred registration, attributes, server tick, damage,
   dimension, command, and creative-tab events.
 - All eleven original AI goal/roll classes retained. The only source-body changes in
-  those classes are the 1.21 step-height API, mob-griefing hook, and glass base-class names.
+  those classes initially were the 1.21 step-height API, mob-griefing hook, and glass base-class names.
+  The surface-stalking follow-up also adds an explicit chase-continuation guard.
 - NeoForge client-bound custom payload registration replaces Forge SimpleChannel.
   The payload retains the original resource ID, position, volume, and pitch fields.
   The client keeps the original hard-coded playback volume/pitch (2.0/1.0), rather
@@ -84,3 +85,20 @@ uses the synchronized crawling state so the new behavior shows the crawl animati
 Existing crawl dimensions and speed are retained. Two additional server GameTests
 verify tunnel entry/exit, close/distant chase transitions, and no proximity-only crawl
 while staring. All 6 required GameTests and all 7 parity/resource checks pass.
+
+## Follow-up: passive surface stalking and retreat
+
+Idle surface hounds roll a 50% stalking chance every 100 ticks for an eligible player
+within 64 blocks. Active chases and flee behavior are not interrupted. Stalking lasts
+600–900 ticks, keeps a 16–24 block distance band at crawl speed, and backs away when
+approached. The new goal holds movement/look control while combat targeting and all
+melee attacks are suppressed. A synchronized fleeing pose replaces crawling for the
+60-tick running retreat, followed by disappearance. Invalid/distant targets and leaving
+the surface initiate retreat early. The normal lifetime timer pauses during this
+sequence, and only the server controls timed removal.
+
+All 7 server GameTests and 7 parity/resource checks pass. The added runtime test checks
+attack-start exclusion, pathing toward a distant player without closing to melee range,
+backoff pathing, waiting at the distance band, passive behavior at melee range, stalking
+duration, transition to running, and eventual despawn. Original goal regression checks
+explicitly allow the new chase-continuation guard while comparing the rest to the input.

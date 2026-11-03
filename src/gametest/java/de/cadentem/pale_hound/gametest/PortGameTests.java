@@ -114,6 +114,66 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void surfaceStalkingIsPassive(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoGravity(true);
+        while (hound.blockPosition().getY() > helper.getLevel().getMinBuildHeight()
+            && !helper.getLevel().getBlockState(hound.blockPosition().below()).isSolid())
+            hound.setPos(hound.position().add(0, -1, 0));
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "StalkTest")) {
+                @Override public boolean isInvulnerableTo(net.minecraft.world.damagesource.DamageSource source) { return false; }
+            };
+        player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+        player.setPos(hound.position().add(20, 0, 0));
+        helper.getLevel().addNewPlayer(player);
+        try {
+            hound.setAggressive(true);
+            helper.assertTrue(!hound.tryStartSurfaceStalking(player), "Stalking must not interrupt attacks");
+            hound.setAggressive(false);
+            helper.assertTrue(hound.tryStartSurfaceStalking(player), "Idle surface hound should be able to stalk");
+            hound.tick();
+            helper.assertTrue(hound.isSurfaceStalking(), "Surface player should activate stalking without staring");
+            helper.assertTrue(hound.getSurfaceStalkTarget() == player && hound.isCrawling(), "Stalking target or crawling missing");
+            helper.assertTrue(!hound.isAggressive() && hound.getTarget() == null, "Stalking must suppress combat targeting");
+            var goal = new de.cadentem.pale_hound.entities.goals.PaleHoundSurfaceStalkGoal(hound);
+            goal.start();
+            goal.tick();
+            helper.assertTrue(hound.getNavigation().isDone(), "Hound should wait at stalking distance");
+            player.setPos(hound.position().add(40, 0, 0));
+            goal.start();
+            goal.tick();
+            var followPath = hound.getNavigation().getPath();
+            helper.assertTrue(followPath != null && !followPath.isDone(), "Stalking should path toward a distant player");
+            helper.assertTrue(followPath.getTarget().distSqr(player.blockPosition()) >= 16 * 16, "Follow path should leave room before the player");
+            player.setPos(hound.position().add(1, 0, 0));
+            goal.start();
+            goal.tick();
+            var retreatPath = hound.getNavigation().getPath();
+            helper.assertTrue(retreatPath != null && retreatPath.getTarget().distSqr(player.blockPosition()) > 1,
+                "Approaching player should trigger a path away");
+            hound.tick();
+            float health = player.getHealth();
+            helper.assertTrue(!hound.doHurtTarget(player) && player.getHealth() == health, "Stalking hound attacked nearby player");
+            helper.assertTrue(hound.getTarget() == null && !hound.isAggressive(), "Proximity goal bypassed stalking");
+            // Keep the test synchronous: advance the entity through the whole lifecycle.
+            hound.setNoAi(true);
+            int ticks = 0;
+            while (!hound.isSurfaceStalkRetreating() && ticks++ < 901) hound.tick();
+            helper.assertTrue(ticks + 2 >= 600 && ticks + 2 <= 900, "Stalking duration should be 30–45 seconds");
+            helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Stalking must transition to retreat");
+            helper.assertTrue(!hound.isCrawling() && hound.getSpeedModifier() == 1.2, "Retreat should use running posture and speed");
+            helper.assertTrue(!hound.doHurtTarget(player), "Retreat must remain passive");
+            for (int i = 0; i < 60; i++) hound.tick();
+            helper.assertTrue(hound.isRemoved(), "Hound must despawn after the three-second retreat");
+        } finally {
+            hound.discard();
+            helper.getLevel().removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
