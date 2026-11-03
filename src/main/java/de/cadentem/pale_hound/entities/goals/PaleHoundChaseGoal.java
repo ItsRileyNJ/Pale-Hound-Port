@@ -107,7 +107,7 @@ public class PaleHoundChaseGoal extends Goal {
       this.speedUp = 0;
       this.previousTarget = null;
       this.paleHound.setAggressive(false);
-      this.paleHound.getEntityData().set(PaleHoundEntity.CRAWLING_ACCESSOR, false);
+      this.paleHound.setCrawling(false);
       this.paleHound.getNavigation().stop();
       this.paleHound.refreshDimensions();
    }

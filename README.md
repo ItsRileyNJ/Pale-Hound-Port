@@ -34,22 +34,23 @@ python3 -m unittest discover -s tests -v
 ./gradlew processResources
 ```
 
-The seven Python checks compare assets, original AI goal bodies, configuration defaults
+The eight Python checks compare assets, original AI goal bodies, configuration defaults
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for fourteen in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for nineteen in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
-structure template are excluded from the distributable JAR. Manual multiplayer and
+structure templates are excluded from the distributable JAR. Manual multiplayer and
 visual/behavior comparisons against the original remain separate from these checks.
 
 ## Provenance
 
 The original JAR declares the MIT license and credits TheSpukuz, Llamii_Llama, Gargin,
 Cadentem, and Schpalrbo. Original models, textures, sounds, and logo are preserved byte for byte.
-Animation values/timings are retained with a malformed easing expression repaired;
+Other animation values/timings are retained with a malformed easing expression repaired;
+the crawl is intentionally replaced by a grounded gait and stationary pose;
 translations retain existing entries and add the original subtitle text. Original credits are retained in mod metadata.
 The source was recovered with Vineflower 1.11.1, checked against CFR 0.152, and mapped
 from 1.20.1 SRG names to Mojang names before API migration. The baseline records the
@@ -58,8 +59,12 @@ original JAR SHA-256. Original author source was not supplied.
 ## Crawling behavior
 
 The Hound now crawls in two-block-high tunnels and during an active chase within
-12 blocks of a living target. He returns to standing when neither condition applies.
-The crawl animation follows the synchronized posture, and crawl speed remains 0.35.
+12 blocks of a living target. He returns to standing when neither condition applies and his entire standing bounding box fits.
+He anticipates low ceilings along his path and remains low until clear of roof edges.
+The crawl animation follows the synchronized posture, with a hunched four-point stance,
+bent limbs, planted-foot phases and a still idle pose. The neck stays attached to the shoulders
+and skull; head turns are limited while crawling. A compressed variation fits one-block tunnels.
+Gait playback follows movement speed; crawl movement speed remains 0.35.
 This is an intentional behavior change requested after the original port.
 
 ## Surface stalking
@@ -122,3 +127,16 @@ Stalking/retreat movement can try up to four alternate waypoints, including flan
 positions, and prefers completed paths on safe ground. Fire, lava, magma, powder snow
 and water receive avoidance checks/costs. Waypoint destinations must lie in loaded chunks;
 pathfinding does not guarantee a route through every terrain layout.
+
+## Highlight command
+
+OPs (permission level 2) and creative players can use `/pale_hound highlight` to outline
+loaded Hounds in their current dimension for 30 seconds. `/pale_hound highlight 120`
+sets a duration of 1–300 seconds; `/pale_hound highlight off` clears it early.
+The outline is visible only to the requester and only for entities the client receives
+within tracking distance. It does not load chunks or reveal unloaded Hounds. Other
+Pale Hound administration commands still require OP permissions.
+
+Idle roaming continues after vanilla's inactivity threshold. If a targetless Hound is
+stalled with no active path for five seconds, he returns to roaming and requests a new
+route. Stalking and active encounters retain their own movement rules.

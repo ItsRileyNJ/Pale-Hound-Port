@@ -13,6 +13,14 @@ neoForge {
     runs {
         client {
             client()
+            if (project.hasProperty('clientCrawlPreview')) {
+                systemProperty 'pale_hound.clientCrawlPreview', 'true'
+                programArguments.addAll '--quickPlaySingleplayer', project.property('clientCrawlPreview').toString()
+            }
+            if (project.hasProperty('clientHighlightSmoke')) {
+                systemProperty 'pale_hound.clientHighlightSmoke', 'true'
+                programArguments.addAll '--quickPlaySingleplayer', project.property('clientHighlightSmoke').toString()
+            }
             if (project.hasProperty('clientAssetSmoke')) {
                 systemProperty 'pale_hound.clientAssetSmoke', 'true'
             }
@@ -46,5 +54,5 @@ sourceSets.main.java.srcDir 'src/gametest/java'
 sourceSets.main.resources.srcDir 'src/gametest/resources'
 tasks.named('jar') {
     exclude 'de/cadentem/pale_hound/gametest/**'
-    exclude 'data/pale_hound/structure/port_test.nbt'
+    exclude 'data/pale_hound/structure/*_test.nbt'
 }

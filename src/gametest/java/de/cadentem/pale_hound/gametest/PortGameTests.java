@@ -442,6 +442,134 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void highlightCommandPermissions(GameTestHelper helper) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var hound = spawn(helper);
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "HighlightTest"));
+        var dispatcher = helper.getLevel().getServer().getCommands().getDispatcher();
+        try {
+            player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+            var ordinary = player.createCommandSourceStack().withPermission(0);
+            boolean denied = false;
+            try { dispatcher.execute("pale_hound highlight", ordinary); }
+            catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) { denied = true; }
+            helper.assertTrue(denied, "Non-OP survival player should not highlight");
+            helper.assertTrue(dispatcher.execute("pale_hound highlight", ordinary.withPermission(2)) >= 1,
+                "Survival operator should be able to highlight");
+            player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
+            var creative = player.createCommandSourceStack().withPermission(0);
+            helper.assertTrue(dispatcher.execute("pale_hound highlight 45", creative) >= 1,
+                "Creative player without OP should be able to highlight");
+            denied = false;
+            try { dispatcher.execute("pale_hound get_timer minecraft:overworld spawn", creative); }
+            catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) { denied = true; }
+            helper.assertTrue(denied, "Creative highlight access should not grant other admin commands");
+            helper.assertTrue(dispatcher.execute("pale_hound highlight off", creative) == 1, "Highlight off should work");
+            helper.assertTrue(!hound.isCurrentlyGlowing(), "Private outline must not set global glowing state");
+        } finally { hound.discard(); player.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void highlightPayloadRoundTrip(GameTestHelper helper) {
+        var ids = java.util.List.of(java.util.UUID.randomUUID(), java.util.UUID.randomUUID());
+        var packet = new de.cadentem.pale_hound.network.HoundHighlight(ids, 600);
+        var buffer = new FriendlyByteBuf(Unpooled.buffer());
+        try {
+            de.cadentem.pale_hound.network.HoundHighlight.STREAM_CODEC.encode(buffer, packet);
+            var decoded = de.cadentem.pale_hound.network.HoundHighlight.STREAM_CODEC.decode(buffer);
+            helper.assertTrue(decoded.equals(packet) && buffer.readableBytes() == 0, "Highlight payload changed in transit");
+            buffer.clear();
+            buffer.writeVarInt(600);
+            buffer.writeVarInt(1025);
+            boolean rejected = false;
+            try { de.cadentem.pale_hound.network.HoundHighlight.STREAM_CODEC.decode(buffer); }
+            catch (IllegalArgumentException expected) { rejected = true; }
+            helper.assertTrue(rejected, "Oversized highlight list should be rejected");
+        } finally { buffer.release(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void staysLowUntilEntireBodyClearsRoof(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        try {
+            hound.setPos(helper.absolutePos(new BlockPos(4, 1, 3)).getX() + 0.9,
+                helper.absolutePos(new BlockPos(4, 1, 3)).getY(), helper.absolutePos(new BlockPos(4, 1, 3)).getZ() + 0.5);
+            helper.setBlock(5, 2, 3, net.minecraft.world.level.block.Blocks.STONE);
+            hound.setCrawling(true);
+            hound.tick();
+            helper.assertTrue(hound.isCrawling(), "Body still overlaps roof edge and must not expand");
+            hound.setCrawling(false);
+            helper.assertTrue(hound.isCrawling(), "Path/goal cleanup must not force unsafe standing");
+            helper.assertTrue(helper.getLevel().noCollision(hound, hound.getBoundingBox().deflate(0.00001)), "Low posture should remain collision-free");
+            hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(6, 1, 3))));
+            hound.tick();
+            helper.assertTrue(!hound.isCrawling(), "Hound should stand once its full body clears the roof");
+        } finally { hound.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "tunnel_test", timeoutTicks = 240)
+    public static void physicallyTraversesLowTunnel(GameTestHelper helper) {
+        for (int x = 0; x < 12; ++x) for (int z = 0; z < 7; ++z)
+            helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
+        for (int x = 0; x < 12; ++x) for (int y = 1; y <= 4; ++y) {
+            helper.setBlock(x, y, 1, net.minecraft.world.level.block.Blocks.STONE);
+            helper.setBlock(x, y, 5, net.minecraft.world.level.block.Blocks.STONE);
+        }
+        for (int x = 2; x <= 8; ++x) for (int z = 1; z <= 5; ++z)
+            helper.setBlock(x, 2, z, net.minecraft.world.level.block.Blocks.STONE);
+        var hound = new PaleHoundEntity(ModEntityTypes.PALE_HOUND.get(), helper.getLevel()) {
+            @Override protected void registerGoals() {
+                this.goalSelector.addGoal(0, new net.minecraft.world.entity.ai.goal.Goal() {
+                    @Override public boolean canUse() { return false; }
+                });
+                this.targetSelector.addGoal(0, new net.minecraft.world.entity.ai.goal.Goal() {
+                    @Override public boolean canUse() { return false; }
+                });
+            }
+        };
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(1, 1, 3))));
+        helper.getLevel().addFreshEntity(hound);
+        var target = helper.absolutePos(new BlockPos(10, 1, 3));
+        helper.assertTrue(hound.getNavigation().moveTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, 0.8), "Tunnel path should be available");
+        helper.onEachTick(() -> helper.assertTrue(helper.getLevel().noCollision(hound, hound.getBoundingBox().deflate(0.00001)), "Hound clipped into tunnel wall or ceiling"));
+        helper.succeedWhen(() -> {
+            helper.assertTrue(hound.distanceToSqr(Vec3.atBottomCenterOf(target)) < 1, "Hound has not crossed the low tunnel");
+            hound.discard();
+        });
+    }
+
+    @GameTest(template = "port_test")
+    public static void roamingSurvivesInactivityAndRecoversIdleRoll(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        while (hound.blockPosition().getY() > helper.getLevel().getMinBuildHeight()
+            && !helper.getLevel().getBlockState(hound.blockPosition().below()).isSolid())
+            hound.setPos(hound.position().add(0, -1, 0));
+        int originalInterval = ServerConfig.ROAM_INTERVAL.get();
+        try {
+            hound.setNoActionTime(1000);
+            hound.getRandom().setSeed(0);
+            var roaming = new de.cadentem.pale_hound.entities.goals.PaleHoundRoamGoal(hound, 0.35);
+            ServerConfig.ROAM_INTERVAL.set(10);
+            boolean canRoam = false;
+            for (int i = 0; i < 32 && !canRoam; ++i) canRoam = roaming.canUse();
+            helper.assertTrue(canRoam && hound.getNoActionTime() == 1000, "Inactivity must not permanently disable roaming");
+            hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.FLEE;
+            hound.getNavigation().stop();
+            for (int i = 0; i < 100; ++i) hound.tick();
+            helper.assertTrue(hound.currentRoll == de.cadentem.pale_hound.entities.goals.Roll.STROLL,
+                "Targetless flee roll should recover instead of standing idle forever");
+        } finally { hound.discard(); ServerConfig.ROAM_INTERVAL.set(originalInterval); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

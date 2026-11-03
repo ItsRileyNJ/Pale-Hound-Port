@@ -9,7 +9,9 @@
     "ClimberNavigationAccessor",
     "NavigationStateAccessor"
   ],
-  "client": [],
+  "client": [
+    "MixinMinecraftHighlight"
+  ],
   "required": true,
   "injectors": {
     "defaultRequire": 1

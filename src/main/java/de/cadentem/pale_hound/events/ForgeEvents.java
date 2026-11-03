@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.datafixers.util.Pair;
 import de.cadentem.pale_hound.PaleHound;
+import de.cadentem.pale_hound.commands.HoundHighlightCommand;
 import de.cadentem.pale_hound.config.ServerConfig;
 import de.cadentem.pale_hound.entities.PaleHoundEntity;
 import java.util.concurrent.ConcurrentHashMap;
@@ -87,9 +88,10 @@ public class ForgeEvents {
    @SubscribeEvent
    public static void registerEvents(RegisterCommandsEvent event) {
       LiteralArgumentBuilder<CommandSourceStack> builder = (LiteralArgumentBuilder<CommandSourceStack>)Commands.literal("pale_hound")
-         .requires(source -> source.hasPermission(2));
+         .requires(HoundHighlightCommand::canUse);
+      builder.then(HoundHighlightCommand.command());
       builder.then(
-         Commands.literal("fast_forward")
+         Commands.literal("fast_forward").requires(source -> source.hasPermission(2))
             .then(
                Commands.argument("dimension", DimensionArgument.dimension())
                   .then(
@@ -110,7 +112,7 @@ public class ForgeEvents {
                   )
             )
       );
-      builder.then(Commands.literal("get_target").then(Commands.argument("dimension", DimensionArgument.dimension()).executes(context -> {
+      builder.then(Commands.literal("get_target").requires(source -> source.hasPermission(2)).then(Commands.argument("dimension", DimensionArgument.dimension()).executes(context -> {
          String dimension = DimensionArgument.getDimension(context, "dimension").dimension().location().toString();
          Entity currentVictim = PaleHound.getCurrentVictim(dimension);
          if (currentVictim != null) {
@@ -122,7 +124,7 @@ public class ForgeEvents {
          return 1;
       })));
       builder.then(
-         Commands.literal("get_timer")
+         Commands.literal("get_timer").requires(source -> source.hasPermission(2))
             .then(
                Commands.argument("dimension", DimensionArgument.dimension())
                   .then(

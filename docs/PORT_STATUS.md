@@ -46,7 +46,7 @@ Exhaustive visual and multiplayer equivalence to the original is not claimed.
 2. Test the distributable in a normal dedicated multiplayer server; the GameTest
    server already validates server-side loading and mixin behavior.
 3. Launch a client and confirm the spawn egg, model scale, head rotation, eyes, and all
-   nine animation selections; test sound delivery with two players.
+   twelve animation selections; test sound delivery with two players.
 4. Compare original and port spawning by light, height, dimension, biome, distance,
    path checks, maximum entity count, timers, cooldowns and surface multiplier.
 5. Compare stroll, proximity/direct-gaze acquisition, stare transitions, chase attacks,
@@ -182,3 +182,30 @@ wall, keeping stopped navigation stopped, path planning without movement, altern
 waypoints and rejecting a magma endpoint. All 7 parity/resource checks pass; original
 config defaults and goal logic are compared allowing the documented added options
 and the chase timer scaling. Full visual/multiplayer terrain testing remains manual.
+
+## Follow-up: private highlighting, tunnel clearance and crawl stance
+
+- Added `/pale_hound highlight [seconds]` (default 30, range 1–300) and `highlight off`
+  for OP/creative players. A bounded client payload highlights loaded current-dimension
+  Hounds only for the requester. State clears on expiration, world switch or logout;
+  server glowing flags remain unchanged. Existing administration commands remain OP-only.
+- Standing clearance now checks the entire bounding box, including partial overlap with
+  a roof edge, and anticipates low path nodes. Goal cleanup and temporary navigation
+  posture restoration cannot expand the Hound into a ceiling. A real one-block tunnel
+  test reproduced clipping before this fix and traverses the tunnel without clipping afterward.
+- Idle roaming bypasses vanilla RandomStrollGoal's no-action-time lockout. A targetless
+  Hound with no path for 100 ticks clears stale encounter state and requests another roam.
+- Replaced the swimming-style crawl with a bent-limb, four-point gait, a stationary
+  crawl pose, limited head turns and a compressed tunnel variation. The neck has no
+  translation away from its shoulder attachment. Moving limbs have planted stance phases
+  and lifted return phases; controller playback scales with horizontal velocity.
+  Other original animations and model/texture assets are retained.
+
+Validation: all 19 server GameTests pass with and without the supplied Mercenaries mod;
+all eight Python checks pass. Client tests exercise
+command-to-packet delivery, private glow rendering, off and expiry. The client asset
+smoke loads all twelve used animations. A disposable integrated world is available for
+visual inspection with `runClient -PclientCrawlPreview=WorldName`; it spawns a forced
+crawl fixture alternating movement and rest, with head turns. Use a disposable world,
+since the fixture moves the spectator camera and creates entities. The animation was
+inspected in Minecraft; broader terrain/modpack and multiplayer testing remains manual.

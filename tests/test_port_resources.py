@@ -30,13 +30,42 @@ class PortResources(unittest.TestCase):
         rotations = expected['animations']['animation.pale_hound.calm_idle']['bones']['upperleftleg']['rotation']
         for time, vector in rotations.items():
             rotations[time] = {'vector': [float(v.split('+')[0]) for v in vector], 'easing': 'easeOutSine'}
-        self.assertEqual(json.loads((RES / name).read_text()), expected)
+        actual = json.loads((RES / name).read_text())
+        expected['animations'].pop('animation.pale_hound.crawl')
+        actual['animations'].pop('animation.pale_hound.crawl')
+        actual['animations'].pop('animation.pale_hound.crawl_idle')
+        actual['animations'].pop('animation.pale_hound.crawl_low')
+        actual['animations'].pop('animation.pale_hound.crawl_low_idle')
+        self.assertEqual(actual, expected)
         name = 'assets/pale_hound/lang/en_us.json'
         expected = dict(BASE['migrated_assets'][name])
         for value in json.loads((RES / 'assets/pale_hound/sounds.json').read_text()).values():
             if 'subtitle' in value:
                 expected[value['subtitle']] = value['subtitle']
         self.assertEqual(json.loads((RES / name).read_text()), expected)
+
+    def test_grounded_crawl_loops_and_idle_pose(self):
+        animations = json.loads((RES / 'assets/pale_hound/animations/pale_hound.animation.json').read_text())['animations']
+        crawl = animations['animation.pale_hound.crawl']
+        idle = animations['animation.pale_hound.crawl_idle']
+        self.assertTrue(crawl['loop'])
+        for bone in crawl['bones'].values():
+            for channel in bone.values():
+                if isinstance(channel, dict):
+                    self.assertEqual(channel['0.0000'], channel['1.6000'])
+                    values = list(channel.values())
+                    for left, right in zip(values, values[1:]):
+                        self.assertLess(max(abs(a - b) for a, b in zip(left, right)), 60)
+        for bone in idle['bones'].values():
+            for channel in bone.values():
+                self.assertIsInstance(channel, list)  # No swimming/stroking while standing still.
+        for normal, low in [('crawl', 'crawl_low'), ('crawl_idle', 'crawl_low_idle')]:
+            normal_bones = animations['animation.pale_hound.' + normal]['bones']
+            low_bones = dict(animations['animation.pale_hound.' + low]['bones'])
+            base = low_bones.pop('base')
+            self.assertEqual(low_bones, normal_bones)
+            # Compression about the base pivot must keep the feet on the floor.
+            self.assertAlmostEqual(19.5 * (1 - base['scale'][1]) + base['position'][1], 0)
 
     def test_config_defaults_and_category_order_unchanged(self):
         for name, expected in BASE['config_static_blocks'].items():
@@ -65,6 +94,7 @@ class PortResources(unittest.TestCase):
                 body = source[source.index('public '):]
                 body = body.replace('maxUpStep()', 'getStepHeight()')
                 body = body.replace('Utils.presenceTicks(', 'Utils.secondsToTicks(')
+                body = body.replace('this.paleHound.setCrawling(false);', 'this.paleHound.getEntityData().set(PaleHoundEntity.CRAWLING_ACCESSOR, false);')
                 body = body.replace('EventHooks.canEntityGrief', 'ForgeEventFactory.getMobGriefingEvent')
                 body = body.replace('HalfTransparentBlock', 'AbstractGlassBlock')
                 body = re.sub(r'if \(this\.paleHound\.isSurfaceStalking\(\)\) \{\s*return false;\s*\}', '', body)

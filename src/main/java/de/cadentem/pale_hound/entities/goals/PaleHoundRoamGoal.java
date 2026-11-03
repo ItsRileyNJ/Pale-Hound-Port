@@ -8,18 +8,30 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /** Longer excursions, preferring destinations outside the recently visited area. */
-public final class PaleHoundRoamGoal extends PaleHoundStrollGoal {
+public final class PaleHoundRoamGoal extends RandomStrollGoal {
     private final PaleHoundEntity hound;
     private final ArrayDeque<BlockPos> recentDestinations = new ArrayDeque<>();
 
     public PaleHoundRoamGoal(PaleHoundEntity hound, double speed) {
-        super(hound, speed);
+        super(hound, speed, ServerConfig.ROAM_INTERVAL.get(), false);
         this.hound = hound;
         setInterval(ServerConfig.ROAM_INTERVAL.get());
+    }
+
+    @Override public boolean canUse() {
+        setInterval(ServerConfig.ROAM_INTERVAL.get());
+        return hound.currentRoll == Roll.STROLL && hound.getTarget() == null
+            && !hound.isSurfaceStalking() && super.canUse();
+    }
+
+    @Override public boolean canContinueToUse() {
+        return hound.currentRoll == Roll.STROLL && hound.getTarget() == null
+            && !hound.isSurfaceStalking() && super.canContinueToUse();
     }
 
     @Override @Nullable
