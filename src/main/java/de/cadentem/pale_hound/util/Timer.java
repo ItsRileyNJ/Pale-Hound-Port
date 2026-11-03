@@ -72,6 +72,11 @@ public class Timer {
       this.targetSpawn = (int)(spawnTimer * ServerConfig.SPAWN_TIMER_MULTIPLIER.get());
    }
 
+   public void resetSpawnTimerAfterBeingSpotted() {
+      this.resetSpawnTimer();
+      this.targetSpawn = (int)Math.ceil(this.targetSpawn * 0.25);
+   }
+
    @Override
    public String toString() {
       String name = this.currentVictim != null ? this.currentVictim.getName().getString() : "NONE";

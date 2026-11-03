@@ -126,3 +126,30 @@ test covers an existing config receiving the default, custom base settings being
 readiness at the shortened tick threshold, unchanged noise timing, cooldown scaling,
 and restoring original pacing with multiplier 1.0. The regression baseline continues
 to verify all original configuration defaults and categories, allowing only this new key.
+
+## Follow-up: spotted retreat and restricted targets
+
+Direct gaze by any valid player while stalking triggers the existing 60-tick running
+retreat. The gaze check respects the spotting range, requires dot product > 0.99 and
+line of sight, and is evaluated on the server. Once despawned, the dimension's spawn
+timer starts a fresh wait at one quarter of its configured duration; the existing 0.8
+spawn multiplier applies first. Noise timing is retained. The modifier does not persist
+into ordinary subsequent spawn resets, and repeated ticks cannot reapply it after removal.
+
+A centralized target policy now filters nearest-mob acquisition, target assignment,
+attack eligibility/retaliation, and final melee damage. It permits players, sheep,
+villagers, iron golems, tamed wolves, the supplied mod's defender and three caravan
+entity types, and its UUID-marked caravan horses. It excludes ordinary horses, wild
+wolves, generic wandering traders, zombies, pillagers and other unlisted entities.
+The earlier close-chase test now uses an allowed sheep instead of an excluded zombie.
+
+Build and all 11 server GameTests pass both without the optional mod and with the
+supplied Fantasy Feudalism: Mercenaries 1.18.2 JAR installed (this is its mod version;
+the supplied JAR targets Minecraft 1.21.1/NeoForge 21.1.262). The compatibility run
+creates all four actual registered optional entity types and verifies target eligibility.
+The optional JAR is neither required nor redistributed. All 7 parity/resource checks pass.
+
+The new runtime tests also cover looking away, occluded gaze, direct gaze, immediate
+retreat, despawn, the exact one-off 75% reduction, unchanged noise timing, ordinary
+subsequent timer resets, excluded targets not taking melee damage or provoking
+retaliation, tame versus wild wolves, and marked versus ordinary horses.

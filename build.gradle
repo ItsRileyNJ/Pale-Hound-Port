@@ -34,6 +34,9 @@ neoForge {
 
 dependencies {
     implementation files('libs/geckolib-neoforge-1.21.1-4.9.3.jar')
+    if (project.hasProperty('mercenariesJar')) {
+        runtimeOnly files(project.property('mercenariesJar'))
+    }
 }
 
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

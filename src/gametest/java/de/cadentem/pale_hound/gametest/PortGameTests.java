@@ -92,7 +92,7 @@ public final class PortGameTests {
         var hound = spawn(helper);
         hound.setNoAi(true);
         hound.setNoGravity(true);
-        var target = net.minecraft.world.entity.EntityType.ZOMBIE.create(helper.getLevel());
+        var target = net.minecraft.world.entity.EntityType.SHEEP.create(helper.getLevel());
         target.setPos(hound.position().add(6, 0, 0));
         hound.setTarget(target);
         hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.CHASE;
@@ -232,6 +232,115 @@ public final class PortGameTests {
             ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.set(cooldownChance);
             ServerConfig.SPAWN_TIMER_MULTIPLIER.set(multiplier);
         }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void directGazeTriggersRetreatAndShorterRespawn(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "GazeTest"));
+        player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+        player.setPos(hound.position().add(4, 0, 0));
+        helper.getLevel().addNewPlayer(player);
+        double chance = ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.get();
+        int cooldown = ServerConfig.CAN_SPAWN_COOLDOWN.get();
+        double multiplier = ServerConfig.SPAWN_TIMER_MULTIPLIER.get();
+        var wall = hound.blockPosition().offset(2, 0, 0);
+        try {
+            ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.set(1.0);
+            ServerConfig.CAN_SPAWN_COOLDOWN.set(1000);
+            ServerConfig.SPAWN_TIMER_MULTIPLIER.set(0.8);
+            helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start stalking");
+            hound.tick();
+            helper.assertTrue(!hound.isSurfaceStalkRetreating(), "Looking away should not interrupt stalking");
+            Vec3 direction = hound.getEyePosition().subtract(player.getEyePosition());
+            player.setYRot((float)Math.toDegrees(Math.atan2(-direction.x, direction.z)));
+            player.setXRot((float)-Math.toDegrees(Math.atan2(direction.y, Math.sqrt(direction.x * direction.x + direction.z * direction.z))));
+            player.setYHeadRot(player.getYRot());
+            helper.getLevel().setBlockAndUpdate(wall, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+            helper.getLevel().setBlockAndUpdate(wall.above(), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+            hound.tick();
+            helper.assertTrue(!hound.isSurfaceStalkRetreating(), "Gaze through a wall should not count");
+            helper.getLevel().removeBlock(wall, false);
+            helper.getLevel().removeBlock(wall.above(), false);
+            String dimension = helper.getLevel().dimension().location().toString();
+            helper.assertTrue(hound.isLookingAtMe(player, true), "Clear direct gaze was not detected: LOS=" + player.hasLineOfSight(hound) + " view=" + player.getViewVector(1) + " delta=" + hound.getEyePosition().subtract(player.getEyePosition()).normalize() + " valid=" + de.cadentem.pale_hound.util.Utils.isValidTarget(player) + " range=" + ServerConfig.SPOTTING_RANGE.get());
+            var spawnBefore = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn");
+            var noiseBefore = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "noise");
+            hound.tick();
+            helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Direct eye contact should trigger immediate retreat");
+            helper.assertTrue(!hound.isCrawling(), "Spotted hound should run instead of crawl");
+            helper.assertTrue(spawnBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn")),
+                "Respawn countdown should start after despawning, not before");
+            for (int i = 0; i < 60; i++) hound.tick();
+            helper.assertTrue(hound.isRemoved(), "Spotted hound should despawn after running away");
+            var nextSpawn = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn");
+            helper.assertTrue(nextSpawn.getFirst() == 0 && nextSpawn.getSecond() == 4000,
+                "Next spawn wait should be 25% of the configured 800-second effective cooldown");
+            helper.assertTrue(noiseBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "noise")), "Noise timer should not be reset");
+            hound.tick();
+            helper.assertTrue(nextSpawn.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn")), "Spotted bonus must apply only once");
+            var ordinary = new de.cadentem.pale_hound.util.Timer();
+            helper.assertTrue(ordinary.targetSpawn == 16000, "Later normal spawn resets should retain regular timing");
+        } finally {
+            hound.discard();
+            helper.getLevel().removeBlock(wall, false);
+            helper.getLevel().removeBlock(wall.above(), false);
+            helper.getLevel().removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+            ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.set(chance);
+            ServerConfig.CAN_SPAWN_COOLDOWN.set(cooldown);
+            ServerConfig.SPAWN_TIMER_MULTIPLIER.set(multiplier);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
+    public static void onlyAllowedTargetsCanBeAttacked(GameTestHelper helper) {
+        var hound = spawn(helper);
+        try {
+            for (var type : java.util.List.of(net.minecraft.world.entity.EntityType.SHEEP,
+                net.minecraft.world.entity.EntityType.VILLAGER, net.minecraft.world.entity.EntityType.IRON_GOLEM)) {
+                var target = (net.minecraft.world.entity.LivingEntity)type.create(helper.getLevel());
+                helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundTargets.isAllowed(target), "Allowed target rejected: " + type);
+                hound.setTarget(target);
+                helper.assertTrue(hound.getTarget() == target, "Allowed target was not assigned");
+                target.discard();
+            }
+            for (var type : java.util.List.of(net.minecraft.world.entity.EntityType.COW, net.minecraft.world.entity.EntityType.ZOMBIE,
+                net.minecraft.world.entity.EntityType.PILLAGER, net.minecraft.world.entity.EntityType.WOLF,
+                net.minecraft.world.entity.EntityType.HORSE, net.minecraft.world.entity.EntityType.WANDERING_TRADER)) {
+                var target = (net.minecraft.world.entity.LivingEntity)type.create(helper.getLevel());
+                float health = target.getHealth();
+                hound.setTarget(target);
+                helper.assertTrue(hound.getTarget() == null && !hound.canAttack(target), "Excluded target assigned: " + type);
+                helper.assertTrue(!hound.doHurtTarget(target) && target.getHealth() == health, "Excluded mob took damage: " + type);
+                hound.setLastHurtByMob(target);
+                helper.assertTrue(!new de.cadentem.pale_hound.entities.goals.CustomHurtByTargetGoal(hound).canUse(),
+                    "Retaliation allowed an excluded attacker: " + type);
+                target.discard();
+            }
+            var pet = net.minecraft.world.entity.EntityType.WOLF.create(helper.getLevel());
+            pet.setTame(true, false);
+            helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundTargets.isAllowed(pet), "Tamed wolf pet should be allowed");
+            pet.discard();
+            var horse = net.minecraft.world.entity.EntityType.HORSE.create(helper.getLevel());
+            horse.getPersistentData().putUUID("FFMCaravan", java.util.UUID.randomUUID());
+            helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundTargets.isAllowed(horse), "Marked caravan horse should be allowed");
+            horse.discard();
+            // Run these assertions with the supplied optional mod too, without making it required.
+            for (String name : java.util.List.of("defender", "caravan_villager", "caravan_trader", "caravan_mule")) {
+                var id = ResourceLocation.fromNamespaceAndPath("villagerscontract", name);
+                if (!net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.containsKey(id)) continue;
+                var target = (net.minecraft.world.entity.LivingEntity)net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(id).create(helper.getLevel());
+                helper.assertTrue(de.cadentem.pale_hound.util.PaleHoundTargets.isAllowed(target), "Optional mod target rejected: " + id);
+                hound.setTarget(target);
+                helper.assertTrue(hound.getTarget() == target && hound.canAttack(target), "Optional mod target selection failed: " + id);
+                target.discard();
+            }
+        } finally { hound.discard(); }
         helper.succeed();
     }
 

@@ -38,7 +38,7 @@ The seven Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for nine in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for eleven in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -81,3 +81,21 @@ existing configs automatically receive the new setting when missing. With the or
 base values, the ordinary window is approximately 10m40s–16m and the long cooldown
 is 18m40s. Eligible player/location checks and the maximum entity count still apply.
 Use `1.0` to restore the original spawn pacing. Noise timers are unaffected.
+
+## Being spotted and attack targets
+
+Direct eye contact from a valid player during stalking starts the running retreat
+immediately. It requires clear line of sight and respects the spotting-range setting.
+After the three-second retreat/despawn, that dimension's next spawn wait is reset to
+25% of the configured wait (including the spawn-timer multiplier). This bonus applies
+once; later successful spawns use normal timing. Normal spawn eligibility rules remain.
+
+Attack targets are restricted to players, sheep, villagers, iron golems, tamed wolves,
+and Fantasy Feudalism: Mercenaries entities `villagerscontract:defender`,
+`caravan_villager`, `caravan_trader`, and `caravan_mule`. Horses bearing that mod's
+`FFMCaravan` UUID are also recognized as caravan members. Ordinary horses, wild wolves,
+wandering traders and other mobs are excluded, including from retaliation. Stalking
+and retreat still suppress attacks against every target.
+
+The Mercenaries mod is optional, and its JAR is not bundled. For compatibility testing
+with your own copy, use `./gradlew runGameTestServer -PmercenariesJar=/absolute/path/to/mod.jar`.

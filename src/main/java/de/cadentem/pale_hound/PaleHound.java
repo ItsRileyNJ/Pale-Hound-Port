@@ -216,6 +216,13 @@ public class PaleHound {
       }
    }
 
+   public static void scheduleSpawnAfterSpottedRetreat(ServerLevel level) {
+      String key = level.dimension().location().toString();
+      if (!ServerConfig.isValidDimension(key)) return;
+      Timer timer = TIMERS.computeIfAbsent(key, ignored -> new Timer());
+      timer.resetSpawnTimerAfterBeingSpotted();
+   }
+
    public static boolean speedUpTimers(String key, int spawnDelta, int noiseDelta) {
       Timer timer = TIMERS.get(key);
       LOG.debug("Speeding up timers for the dimension [{}], timer: [{}]", key, timer);
