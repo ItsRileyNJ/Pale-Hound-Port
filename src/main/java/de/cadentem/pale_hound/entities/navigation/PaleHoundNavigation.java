@@ -72,7 +72,13 @@ public final class PaleHoundNavigation extends WallClimberNavigation {
     }
 
     @Override public void tick() {
-        super.tick();
+        if (!isDone() || hound.isClimbing()) {
+            super.tick();
+        } else if (((ClimberNavigationAccessor)(Object)this).pale_hound$getClimbTarget() != null) {
+            // Spider navigation otherwise walks straight at a stale destination after a
+            // partial path ends, even while crawling makes climbing impossible.
+            hound.getMoveControl().setWantedPosition(hound.getX(), hound.getY(), hound.getZ(), 0);
+        }
         var target = this.path != null && !this.path.isDone() ? this.path.getTarget()
             : ((ClimberNavigationAccessor)(Object)this).pale_hound$getClimbTarget();
         if (target == null || hound.pleaseStopMoving || hound.position().distanceToSqr(progressPosition) >= 0.25) {
@@ -85,6 +91,17 @@ public final class PaleHoundNavigation extends WallClimberNavigation {
         // Drop the old cache so a changed obstacle can produce a genuinely new path.
         this.path = null;
         var replacement = createPath(target, 0);
-        if (replacement != null) moveTo(replacement, this.speedModifier);
+        if (replacement != null && (replacement.canReach() || hound.isClimbing())) moveTo(replacement, this.speedModifier);
+        else stop();
+    }
+
+    @Override protected void followThePath() {
+        // Reach the center of each waypoint before turning. Vanilla's generous arrival
+        // radius and early corner skipping can steer the body into a narrow cave corner.
+        Vec3 next = this.path.getNextEntityPos(hound);
+        this.maxDistanceToWaypoint = 0.2F;
+        if (Math.abs(hound.getX() - next.x) < 0.2 && Math.abs(hound.getZ() - next.z) < 0.2
+            && Math.abs(hound.getY() - next.y) < 1.0) this.path.advance();
+        this.doStuckDetection(this.getTempMobPos());
     }
 }

@@ -5,13 +5,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import de.cadentem.pale_hound.entities.PaleHoundEntity;
 import de.cadentem.pale_hound.network.HoundHighlight;
+import de.cadentem.pale_hound.registry.ModEntityTypes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class HoundHighlightCommand {
@@ -35,15 +36,37 @@ public final class HoundHighlightCommand {
     }
 
     private static int highlight(CommandSourceStack source, int seconds) throws CommandSyntaxException {
-        var ids = new ArrayList<UUID>();
-        for (var entity : source.getLevel().getAllEntities()) {
-            if (entity instanceof PaleHoundEntity && entity.isAlive()) ids.add(entity.getUUID());
-            if (ids.size() >= HoundHighlight.MAX_ENTITIES) break;
-        }
-        PacketDistributor.sendToPlayer(source.getPlayerOrException(), new HoundHighlight(ids, seconds * 20));
+        var player = source.getPlayerOrException();
+        var level = player.serverLevel();
+        var hounds = loadedHounds(level);
+        var ids = hounds.stream().map(PaleHoundEntity::getUUID).toList();
+        PacketDistributor.sendToPlayer(player, new HoundHighlight(ids, seconds * 20));
         int count = ids.size();
-        source.sendSuccess(() -> Component.literal(count == 0 ? "No loaded Pale Hounds found in this dimension."
-            : "Highlighted " + count + " Pale Hound(s) for " + seconds + " seconds (visible only to you)."), false);
+        String message;
+        if (count == 0) {
+            var elsewhere = new ArrayList<String>();
+            for (var other : source.getServer().getAllLevels()) {
+                if (other == level) continue;
+                int otherCount = loadedHounds(other).size();
+                if (otherCount > 0) elsewhere.add(other.dimension().location() + " (" + otherCount + ")");
+            }
+            message = "No server-loaded Pale Hounds in " + level.dimension().location() + "."
+                + (elsewhere.isEmpty() ? " None found in other dimensions." : " Found in: " + String.join(", ", elsewhere) + ".");
+        } else {
+            var nearest = hounds.stream().min(java.util.Comparator.comparingDouble(player::distanceToSqr)).orElseThrow();
+            var pos = nearest.blockPosition();
+            message = "Highlighted " + count + " Pale Hound(s) for " + seconds + " seconds (visible only to you)."
+                + " Nearest: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()
+                + " (" + Math.round(player.distanceTo(nearest)) + " blocks).";
+        }
+        String feedback = message;
+        source.sendSuccess(() -> Component.literal(feedback), false);
         return count;
+    }
+
+    private static List<PaleHoundEntity> loadedHounds(ServerLevel level) {
+        var result = new ArrayList<PaleHoundEntity>();
+        level.getEntities(ModEntityTypes.PALE_HOUND.get(), entity -> !entity.isRemoved(), result, HoundHighlight.MAX_ENTITIES);
+        return result;
     }
 }

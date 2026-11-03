@@ -43,6 +43,14 @@ public final class PaleHoundRoamGoal extends RandomStrollGoal {
         }
         candidates.sort(Comparator.comparingDouble(this::explorationScore).reversed());
         var path = HoundRoutes.findReachable(hound, candidates);
+        if (path == null) {
+            // Random land samples often miss the floor below a small cave ledge.
+            // Project nearby exits down to ground before giving up on roaming.
+            double radius = Math.min(8, ServerConfig.ROAM_RADIUS.get());
+            path = HoundRoutes.findReachable(hound, java.util.List.of(
+                hound.position().add(radius, 0, 0), hound.position().add(-radius, 0, 0),
+                hound.position().add(0, 0, radius), hound.position().add(0, 0, -radius)));
+        }
         if (path == null) return null;
         BlockPos destination = path.getTarget();
         recentDestinations.addLast(destination.immutable());
@@ -51,7 +59,9 @@ public final class PaleHoundRoamGoal extends RandomStrollGoal {
     }
 
     private double explorationScore(Vec3 point) {
-        double score = hound.distanceToSqr(point);
+        double dx = point.x - hound.getX(), dz = point.z - hound.getZ();
+        double rise = Math.max(0, point.y - hound.getY());
+        double score = dx * dx + dz * dz - 4 * rise * rise;
         for (BlockPos recent : recentDestinations)
             if (recent.distToCenterSqr(point) < 64) score -= 1024;
         return score;

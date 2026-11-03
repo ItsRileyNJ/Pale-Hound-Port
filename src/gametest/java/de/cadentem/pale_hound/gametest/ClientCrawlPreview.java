@@ -37,6 +37,7 @@ public final class ClientCrawlPreview {
         server.execute(() -> {
             var player = server.getPlayerList().getPlayer(uuid);
             var level = player.serverLevel();
+            level.setDayTime(6000);
             int x = player.blockPosition().getX() + 20;
             int z = player.blockPosition().getZ();
             int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
@@ -61,7 +62,7 @@ public final class ClientCrawlPreview {
             level.addFreshEntity(hound);
             entityId = hound.getId();
             player.setGameMode(GameType.SPECTATOR);
-            player.teleportTo(origin.x + 0.5, origin.y - 0.6, origin.z + 3.5);
+            player.teleportTo(origin.x + 2.5, origin.y - 0.6, origin.z + 3.5);
             player.lookAt(EntityAnchorArgument.Anchor.EYES, origin.add(0.5, 0.5, 0));
         });
     }

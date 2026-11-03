@@ -36,12 +36,20 @@ public final class ClientHighlightSmoke {
                 var level = player.serverLevel();
                 int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     player.blockPosition().getX(), player.blockPosition().getZ());
-                player.teleportTo(player.getX(), y + 1, player.getZ());
-                var hound = ModEntityTypes.PALE_HOUND.get().create(level);
+                player.teleportTo(player.getX(), y, player.getZ());
+                // Use the same spawn helper and invisibility state as the encounter timer.
+                level.setDayTime(18000);
+                var spawnPos = player.blockPosition().offset(24, 0, 0);
+                for (int dx = -5; dx <= 5; ++dx) for (int dz = -5; dz <= 5; ++dz)
+                    level.setBlockAndUpdate(spawnPos.offset(dx, 4, dz), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+                var hound = de.cadentem.pale_hound.util.Utils.trySpawnMob(player, ModEntityTypes.PALE_HOUND.get(),
+                    net.minecraft.world.entity.MobSpawnType.TRIGGERED, level, spawnPos, 1, 0, 3,
+                    net.minecraft.util.SpawnUtil.Strategy.ON_TOP_OF_COLLIDER).orElseThrow(
+                        () -> new AssertionError("Natural encounter spawn helper failed"));
+                hound.hasSpawned = true;
+                hound.setInvisible(true);
                 hound.setNoAi(true);
                 hound.setNoGravity(true);
-                hound.setPos(player.position().add(3, 0, 0));
-                level.addFreshEntity(hound);
                 entityId = hound.getId();
             });
         }
@@ -63,7 +71,7 @@ public final class ClientHighlightSmoke {
             phase = 4;
         } else if (phase == 4 && ticks > phaseStarted + 40 && !HoundHighlights.isHighlighted(hound)) {
             if (client.shouldEntityAppearGlowing(hound)) throw new AssertionError("Outline did not expire");
-            PaleHound.LOG.info("CLIENT HIGHLIGHT SMOKE PASSED: private outline, off, and expiration verified");
+            PaleHound.LOG.info("CLIENT HIGHLIGHT SMOKE PASSED: natural encounter spawn, private outline, off, and expiration verified");
             phase = 5;
             client.stop();
         }

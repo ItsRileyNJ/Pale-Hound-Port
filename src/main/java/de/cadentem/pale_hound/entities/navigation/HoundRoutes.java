@@ -31,7 +31,7 @@ public final class HoundRoutes {
     private static BlockPos findGround(PaleHoundEntity hound, Vec3 point) {
         BlockPos base = BlockPos.containing(point);
         if (!hound.level().hasChunkAt(base)) return null;
-        for (int dy = 2; dy >= -6; --dy) {
+        for (int dy = 2; dy >= -hound.getMaxFallDistance(); --dy) {
             BlockPos feet = base.above(dy);
             var floor = hound.level().getBlockState(feet.below());
             if (!hound.level().getWorldBorder().isWithinBounds(feet)

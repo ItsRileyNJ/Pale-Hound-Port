@@ -32,6 +32,12 @@ public final class PortGameTests {
         var hound = spawn(helper);
         helper.assertTrue(hound.getMaxHealth() == ServerConfig.MAX_HEALTH.get().floatValue(), "Configured health missing");
         helper.assertTrue(hound.getAttributeValue(Attributes.ATTACK_DAMAGE) == ServerConfig.ATTACK_DAMAGE.get(), "Configured attack missing");
+        double expectedSpeed = ServerConfig.MOVEMENT_SPEED.get() * 0.8;
+        helper.assertTrue(Math.abs(hound.getAttributeValue(Attributes.MOVEMENT_SPEED) - expectedSpeed) < 0.000001,
+            "Configured movement speed must be reduced by 20 percent");
+        hound.applyConfigAttributes();
+        helper.assertTrue(Math.abs(hound.getAttributeValue(Attributes.MOVEMENT_SPEED) - expectedSpeed) < 0.000001,
+            "Reapplying attributes must not compound the slowdown");
         helper.assertTrue(hound.maxUpStep() == 1.0F, "Step height migration differs");
         helper.assertTrue(hound.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY) == ServerConfig.DEPTH_STRIDER_BONUS.get() / 3, "Water efficiency differs");
         hound.setCrawling(true);
@@ -460,6 +466,26 @@ public final class PortGameTests {
             var creative = player.createCommandSourceStack().withPermission(0);
             helper.assertTrue(dispatcher.execute("pale_hound highlight 45", creative) >= 1,
                 "Creative player without OP should be able to highlight");
+            hound.setInvisible(true);
+            hound.hasSpawned = true;
+            helper.assertTrue(dispatcher.execute("pale_hound highlight", creative) >= 1,
+                "Naturally spawned invisible Hound should be included");
+            var nether = helper.getLevel().getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+            helper.assertTrue(dispatcher.execute("pale_hound highlight", creative.withLevel(nether)) >= 1,
+                "Highlight should search the requesting player's dimension even with a redirected command context");
+            var pos = hound.position().add(2, 2, 0);
+            String summon = String.format(java.util.Locale.ROOT,
+                "summon pale_hound:pale_hound %.3f %.3f %.3f {NoAI:1b,NoGravity:1b,Tags:[\"highlight_summon_test\"]}", pos.x, pos.y, pos.z);
+            helper.assertTrue(dispatcher.execute(summon, creative.withPermission(2)) == 1,
+                "Native summon command failed");
+            var summoned = helper.getLevel().getEntities(ModEntityTypes.PALE_HOUND.get(),
+                entity -> entity.getTags().contains("highlight_summon_test"));
+            try {
+                helper.assertTrue(!summoned.isEmpty(), "Summoned Hound missing from registered-type lookup");
+                hound.discard();
+                helper.assertTrue(dispatcher.execute("pale_hound highlight", creative) >= 1,
+                    "Summoned Hound should also be highlighted");
+            } finally { summoned.forEach(PaleHoundEntity::discard); }
             denied = false;
             try { dispatcher.execute("pale_hound get_timer minecraft:overworld spawn", creative); }
             catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) { denied = true; }
@@ -566,6 +592,70 @@ public final class PortGameTests {
             helper.assertTrue(hound.currentRoll == de.cadentem.pale_hound.entities.goals.Roll.STROLL,
                 "Targetless flee roll should recover instead of standing idle forever");
         } finally { hound.discard(); ServerConfig.ROAM_INTERVAL.set(originalInterval); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "tunnel_test", timeoutTicks = 240)
+    public static void leavesHighCaveLedgeWithoutGettingStranded(GameTestHelper helper) {
+        for (int x = 0; x < 12; ++x) for (int z = 0; z < 8; ++z)
+            helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
+        for (int x = 3; x <= 5; ++x) for (int z = 2; z <= 4; ++z)
+            for (int y = 1; y <= 5; ++y) helper.setBlock(x, y, z, net.minecraft.world.level.block.Blocks.STONE);
+        var hound = new PaleHoundEntity(ModEntityTypes.PALE_HOUND.get(), helper.getLevel()) {
+            @Override protected void registerGoals() {}
+        };
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(4, 6, 3))));
+        helper.getLevel().addFreshEntity(hound);
+        var target = helper.absolutePos(new BlockPos(9, 1, 3));
+        var path = hound.getNavigation().createPath(target, 0);
+        helper.assertTrue(path != null && path.canReach(), "Fall-immune Hound must be able to path down from a high cave ledge");
+        helper.assertTrue(hound.getNavigation().moveTo(path, 0.8), "Could not begin ledge descent");
+        helper.onEachTick(() -> helper.assertTrue(helper.getLevel().noCollision(hound, hound.getBoundingBox().deflate(0.00001)), "Ledge descent clipped into a wall"));
+        helper.succeedWhen(() -> {
+            helper.assertTrue(hound.distanceToSqr(Vec3.atBottomCenterOf(target)) < 1, "Hound has not left the ledge and resumed movement");
+            hound.discard();
+        });
+    }
+
+    @GameTest(template = "tunnel_test", timeoutTicks = 300)
+    public static void crawlsAroundNarrowCaveCorner(GameTestHelper helper) {
+        for (int x = 0; x < 12; ++x) for (int z = 0; z < 8; ++z)
+            for (int y = 0; y <= 3; ++y) helper.setBlock(x, y, z, net.minecraft.world.level.block.Blocks.STONE);
+        for (int x = 1; x <= 8; ++x) helper.setBlock(x, 1, 1, net.minecraft.world.level.block.Blocks.AIR);
+        for (int z = 1; z <= 6; ++z) helper.setBlock(8, 1, z, net.minecraft.world.level.block.Blocks.AIR);
+        var hound = new PaleHoundEntity(ModEntityTypes.PALE_HOUND.get(), helper.getLevel()) {
+            @Override protected void registerGoals() {}
+        };
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(1, 1, 1))));
+        helper.getLevel().addFreshEntity(hound);
+        var target = helper.absolutePos(new BlockPos(8, 1, 6));
+        helper.assertTrue(hound.getNavigation().moveTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, 0.8), "No route around cave corner");
+        helper.onEachTick(() -> helper.assertTrue(helper.getLevel().noCollision(hound, hound.getBoundingBox().deflate(0.00001)), "Cave turn clipped into a wall"));
+        helper.succeedWhen(() -> {
+            helper.assertTrue(hound.distanceToSqr(Vec3.atBottomCenterOf(target)) < 0.5, "Hound stuck at the cave corner");
+            hound.discard();
+        });
+    }
+
+    @GameTest(template = "port_test")
+    public static void finishedCrawlPathDoesNotPushIntoWall(GameTestHelper helper) {
+        var hound = spawn(helper);
+        hound.setNoAi(true);
+        hound.setNoGravity(true);
+        hound.setCrawling(true);
+        try {
+            var start = hound.blockPosition();
+            helper.setBlock(3, 2, 2, net.minecraft.world.level.block.Blocks.STONE);
+            var stale = new net.minecraft.world.level.pathfinder.Path(java.util.List.of(
+                new net.minecraft.world.level.pathfinder.Node(start.getX(), start.getY(), start.getZ())),
+                start.east(3), false);
+            hound.getNavigation().moveTo(stale, 0.6);
+            stale.setNextNodeIndex(stale.getNodeCount());
+            hound.getNavigation().tick();
+            helper.assertTrue(hound.getMoveControl().getWantedX() == hound.getX()
+                && hound.getMoveControl().getWantedZ() == hound.getZ(),
+                "Finished crawl path must not keep spider-style direct movement into a wall");
+        } finally { hound.discard(); }
         helper.succeed();
     }
 

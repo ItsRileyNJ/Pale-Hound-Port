@@ -22,7 +22,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.0-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.1-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -38,7 +38,7 @@ The eight Python checks compare assets, original AI goal bodies, configuration d
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for nineteen in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for twenty-two in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -64,7 +64,7 @@ He anticipates low ceilings along his path and remains low until clear of roof e
 The crawl animation follows the synchronized posture, with a hunched four-point stance,
 bent limbs, planted-foot phases and a still idle pose. The neck stays attached to the shoulders
 and skull; head turns are limited while crawling. A compressed variation fits one-block tunnels.
-Gait playback follows movement speed; crawl movement speed remains 0.35.
+Gait playback follows movement speed; the crawl posture multiplier remains 0.35.
 This is an intentional behavior change requested after the original port.
 
 ## Surface stalking
@@ -131,12 +131,31 @@ pathfinding does not guarantee a route through every terrain layout.
 ## Highlight command
 
 OPs (permission level 2) and creative players can use `/pale_hound highlight` to outline
-loaded Hounds in their current dimension for 30 seconds. `/pale_hound highlight 120`
+loaded Hounds in their current dimension for 30 seconds and report the nearest coordinates. `/pale_hound highlight 120`
 sets a duration of 1–300 seconds; `/pale_hound highlight off` clears it early.
 The outline is visible only to the requester and only for entities the client receives
 within tracking distance. It does not load chunks or reveal unloaded Hounds. Other
-Pale Hound administration commands still require OP permissions.
+Pale Hound administration commands still require OP permissions. If none are found,
+the command names the searched dimension and reports loaded Hounds in other dimensions.
 
 Idle roaming continues after vanilla's inactivity threshold. If a targetless Hound is
 stalled with no active path for five seconds, he returns to roaming and requests a new
 route. Stalking and active encounters retain their own movement rules.
+
+## Elbows, movement speed and cave ledges
+
+Front elbows flare outward in both moving and stationary crawl poses, including the
+compressed tunnel variants. The front paw positions stay the same.
+
+Movement speed is now 80% of `[Attributes].movement_speed`: the original setting
+`0.7` produces a base attribute of `0.56`. This applies to existing configs and all
+movement states, including chasing and retreating. Posture multipliers are unchanged;
+applying attributes again does not compound the slowdown.
+
+The fall-immune Hound can now plan descents of up to 32 blocks, rather than becoming
+stranded on cave ledges above vanilla's small drop limit. Roaming favors horizontal
+exploration over climbing higher, and tries nearby ground projections when random
+land samples fail. Ground projections remain bounded to loaded chunks and safe
+landing endpoints. Narrow turns follow waypoint centers, and a finished crawling
+path no longer falls back to pushing straight toward a wall. Failed replanning clears
+the stale destination when climbing is unavailable.

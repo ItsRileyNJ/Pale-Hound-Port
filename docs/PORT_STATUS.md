@@ -209,3 +209,36 @@ visual inspection with `runClient -PclientCrawlPreview=WorldName`; it spawns a f
 crawl fixture alternating movement and rest, with head turns. Use a disposable world,
 since the fixture moves the spectator camera and creates entities. The animation was
 inspected in Minecraft; broader terrain/modpack and multiplayer testing remains manual.
+
+## Follow-up: flared elbows, 20% slowdown and cave navigation
+
+- Re-solved both front limb chains with outward elbow bends while preserving paw
+  positions/orientations, shoulder attachments and the connected head. All four crawl
+  variants share the new limb poses.
+- The base movement attribute is 80% of the configured value, including on world join
+  with existing configs. The default effective value is 0.56. Reapplication sets the
+  same value instead of stacking the reduction; posture speed multipliers are retained.
+- A high-ledge descent test reproduced the stall: fall-damage immunity alone did not
+  raise the pathfinder's allowed drop. The Hound now permits drops up to 32 blocks.
+  Ground snapping uses the same downward bound. Roaming removes the reward for gaining
+  height and tries nearby projected ground endpoints if random land samples fail.
+- Navigation reaches waypoint centers before turning in narrow passages. A completed
+  crawling path cannot use the spider navigator's straight-line climbing fallback, and
+  an unreachable replan clears the stale destination when climbing is unavailable.
+
+All 22 required server GameTests and eight resource checks pass. New coverage includes
+physical descent from a five-block cave ledge, traversal of a one-block-high L-shaped
+passage without collision, and a completed crawl path adjacent to a wall. Attribute
+checks verify the 20% reduction and idempotent reapplication. The virtual-display client
+preview checks the flared elbows in the actual renderer. Terrain-specific modpack
+behavior remains subject to in-game testing.
+
+Highlight follow-up: lookup now uses the registered entity type in the requesting
+player's actual dimension, including invisible and dying-but-not-removed entities.
+A redirected command source cannot silently search a different dimension. Feedback
+gives the nearest coordinates, or the searched dimension and counts in other loaded
+dimensions when none are found locally. The integrated client test now creates its
+Hound through the actual natural encounter spawn helper and verifies private glow,
+off and expiry. This passes in the Overworld; the reported visible-Hound/zero-count
+case has not been reproduced in this environment and needs the user's entity-selector
+result to isolate. Version 1.10.1 distinguishes this build from earlier 1.10.0 ports.

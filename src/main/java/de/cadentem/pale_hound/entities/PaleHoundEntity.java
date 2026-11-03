@@ -120,7 +120,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.setAttribute(this.getAttribute(Attributes.MAX_HEALTH), (Double)ServerConfig.MAX_HEALTH.get());
       this.setAttribute(this.getAttribute(Attributes.ATTACK_DAMAGE), (Double)ServerConfig.ATTACK_DAMAGE.get());
       this.setAttribute(this.getAttribute(Attributes.ATTACK_SPEED), (Double)ServerConfig.ATTACK_SPEED.get());
-      this.setAttribute(this.getAttribute(Attributes.MOVEMENT_SPEED), (Double)ServerConfig.MOVEMENT_SPEED.get());
+      // Scale the configured value so existing world configs also receive the requested slowdown.
+      this.setAttribute(this.getAttribute(Attributes.MOVEMENT_SPEED), ServerConfig.MOVEMENT_SPEED.get() * 0.8);
       this.setAttribute(this.getAttribute(Attributes.STEP_HEIGHT), 1.0);
       // 1.20.1 depth-strider levels were divided by three before interpolation.
       this.setAttribute(this.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY), ServerConfig.DEPTH_STRIDER_BONUS.get() / 3.0);
@@ -144,7 +145,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       double maxHealth = 80.0;
       double attackDamage = 20.0;
       double attackSpeed = 0.35;
-      double movementSpeed = 0.7;
+      double movementSpeed = 0.7 * 0.8;
       double followRange = 100.0;
       return createMobAttributes()
          .add(Attributes.ARMOR, armor)
@@ -386,6 +387,11 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    public boolean onClimbable() {
       return this.isClimbing();
+   }
+
+   @Override public int getMaxFallDistance() {
+      // Fall immunity also needs to be reflected in path planning, especially on cave ledges.
+      return 32;
    }
 
    public boolean isClimbing() {
