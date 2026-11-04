@@ -79,6 +79,18 @@ public final class PaleHoundNavigation extends WallClimberNavigation {
             // partial path ends, even while crawling makes climbing impossible.
             hound.getMoveControl().setWantedPosition(hound.getX(), hound.getY(), hound.getZ(), 0);
         }
+        if ((hound.isFleeing || hound.isSurfaceStalkRetreating() || hound.isBackingAway()) && this.path != null && !this.path.isDone()) {
+            // Narrow-cave navigation visits every block center. On open ground that
+            // creates a left/right staircase; skip it only across fully clear ground.
+            for (int index = Math.min(this.path.getNodeCount() - 1, this.path.getNextNodeIndex() + 32);
+                 index > this.path.getNextNodeIndex(); --index) {
+                Vec3 waypoint = this.path.getEntityPosAtNode(hound, index);
+                if (!HoundRoutes.canWalkStraight(hound, waypoint)) continue;
+                this.path.setNextNodeIndex(index);
+                hound.getMoveControl().setWantedPosition(waypoint.x, waypoint.y, waypoint.z, this.speedModifier);
+                break;
+            }
+        }
         var target = this.path != null && !this.path.isDone() ? this.path.getTarget()
             : ((ClimberNavigationAccessor)(Object)this).pale_hound$getClimbTarget();
         if (target == null || hound.pleaseStopMoving || hound.position().distanceToSqr(progressPosition) >= 0.25) {

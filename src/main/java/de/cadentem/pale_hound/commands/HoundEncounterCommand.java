@@ -58,14 +58,14 @@ public final class HoundEncounterCommand {
 
     @Nullable private static Vec3 findLocation(PaleHoundEntity hound, ServerPlayer player) {
         Vec3 behind = Vec3.directionFromRotation(0, player.getYRot()).scale(-1);
-        for (int radius : new int[]{28, 20, 12}) for (int i = 0; i < 16; ++i) {
+        for (int radius : new int[]{48, 40, 32}) for (int i = 0; i < 16; ++i) {
             Vec3 candidate = player.position().add(behind.yRot((float)(i * Math.PI / 8)).scale(radius));
             var ground = HoundRoutes.findGround(hound, candidate);
             if (ground != null) return Vec3.atBottomCenterOf(ground);
         }
         // Flying players can still start one: use clear nearby air if no loaded ground is in range.
         for (int i = 0; i < 8; ++i) {
-            Vec3 candidate = player.position().add(behind.yRot((float)(i * Math.PI / 4)).scale(8));
+            Vec3 candidate = player.position().add(behind.yRot((float)(i * Math.PI / 4)).scale(32));
             var bounds = hound.getDimensions(net.minecraft.world.entity.Pose.STANDING).makeBoundingBox(candidate);
             if (player.serverLevel().hasChunkAt(net.minecraft.core.BlockPos.containing(candidate))
                 && player.serverLevel().getWorldBorder().isWithinBounds(bounds)

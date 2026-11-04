@@ -145,7 +145,7 @@ public class PaleHound {
                   level,
                   timer.currentVictim.blockPosition(),
                   40,
-                  35,
+                  Utils.isOnSurface(timer.currentVictim) ? 40 : 35,
                   6,
                   Strategy.ON_TOP_OF_COLLIDER
                );

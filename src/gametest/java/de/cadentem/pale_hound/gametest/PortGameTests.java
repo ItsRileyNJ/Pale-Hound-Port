@@ -119,10 +119,11 @@ public final class PortGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "port_test")
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30)
     public static void surfaceStalkingIsPassive(GameTestHelper helper) {
         var hound = spawn(helper);
         hound.setNoGravity(true);
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64))));
         while (hound.blockPosition().getY() > helper.getLevel().getMinBuildHeight()
             && !helper.getLevel().getBlockState(hound.blockPosition().below()).isSolid())
             hound.setPos(hound.position().add(0, -1, 0));
@@ -131,7 +132,7 @@ public final class PortGameTests {
                 @Override public boolean isInvulnerableTo(net.minecraft.world.damagesource.DamageSource source) { return false; }
             };
         player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
-        player.setPos(hound.position().add(20, 0, 0));
+        player.setPos(hound.position().add(40, 0, 0));
         helper.getLevel().addNewPlayer(player);
         try {
             hound.setAggressive(true);
@@ -146,7 +147,7 @@ public final class PortGameTests {
             goal.start();
             goal.tick();
             helper.assertTrue(hound.getNavigation().isDone(), "Hound should wait at stalking distance");
-            player.setPos(hound.position().add(40, 0, 0));
+            player.setPos(hound.position().add(56, 0, 0));
             goal.start();
             goal.tick();
             var followPath = hound.getNavigation().getPath();
@@ -172,8 +173,9 @@ public final class PortGameTests {
             helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Stalking must transition to retreat");
             helper.assertTrue(!hound.isCrawling() && hound.getSpeedModifier() == 1.2, "Retreat should use running posture and speed");
             helper.assertTrue(!hound.doHurtTarget(player), "Retreat must remain passive");
+            hound.setPos(hound.position().add(1024, 0, 0));
             for (int i = 0; i < 60; i++) hound.tick();
-            helper.assertTrue(hound.isRemoved(), "Hound must despawn after the three-second retreat");
+            helper.assertTrue(hound.isRemoved(), "Hound must despawn after running out of tracking range");
         } finally {
             hound.discard();
             helper.getLevel().removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
@@ -288,15 +290,16 @@ public final class PortGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "port_test")
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30)
     public static void directGazeTriggersRetreatAndShorterRespawn(GameTestHelper helper) {
         var hound = spawn(helper);
         hound.setNoAi(true);
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64))));
         hound.setNoGravity(true);
         var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
             new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "GazeTest"));
         player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
-        player.setPos(hound.position().add(4, 0, 0));
+        player.setPos(hound.position().add(40, 0, 0));
         helper.getLevel().addNewPlayer(player);
         double chance = ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.get();
         int cooldown = ServerConfig.CAN_SPAWN_COOLDOWN.get();
@@ -307,7 +310,7 @@ public final class PortGameTests {
             ServerConfig.CAN_SPAWN_COOLDOWN.set(1000);
             ServerConfig.SPAWN_TIMER_MULTIPLIER.set(0.8);
             helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start stalking");
-            hound.tick();
+            for (int i = 0; i < 160; ++i) hound.tick();
             helper.assertTrue(!hound.isSurfaceStalkRetreating(), "Looking away should not interrupt stalking");
             Vec3 direction = hound.getEyePosition().subtract(player.getEyePosition());
             player.setYRot((float)Math.toDegrees(Math.atan2(-direction.x, direction.z)));
@@ -328,7 +331,10 @@ public final class PortGameTests {
             helper.assertTrue(!hound.isCrawling(), "Spotted hound should run instead of crawl");
             helper.assertTrue(spawnBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn")),
                 "Respawn countdown should start after despawning, not before");
-            for (int i = 0; i < 60; i++) hound.tick();
+            for (int i = 0; i < 80; i++) hound.tick();
+            helper.assertTrue(!hound.isRemoved(), "Visible Hound must not disappear on a three-second clock");
+            hound.setPos(hound.position().add(1024, 0, 0));
+            for (int i = 0; i < 20; i++) hound.tick();
             helper.assertTrue(hound.isRemoved(), "Spotted hound should despawn after running away");
             var nextSpawn = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn");
             helper.assertTrue(nextSpawn.getFirst() == 0 && nextSpawn.getSecond() == 4000,
@@ -576,8 +582,14 @@ public final class PortGameTests {
                 .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SLAB_TYPE,
                     net.minecraft.world.level.block.state.properties.SlabType.TOP));
             helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.LOW, "Partial slab clearance should use the low crawl");
+            helper.assertTrue(hound.getAnimationCrawlPose() == PaleHoundEntity.CrawlPose.LOW, "Low clearance must request compression promptly");
             helper.setBlock(4, 2, 3, net.minecraft.world.level.block.Blocks.AIR);
             helper.setBlock(4, 3, 3, net.minecraft.world.level.block.Blocks.AIR);
+            helper.assertTrue(hound.getAnimationCrawlPose() == PaleHoundEntity.CrawlPose.LOW, "Pose rose immediately after leaving a low ceiling");
+            hound.tickCount += 9;
+            helper.assertTrue(hound.getAnimationCrawlPose() == PaleHoundEntity.CrawlPose.LOW, "Brief clearance should not cause pose oscillation");
+            hound.tickCount++;
+            helper.assertTrue(hound.getAnimationCrawlPose() == PaleHoundEntity.CrawlPose.TALL, "Sustained clearance did not allow the tall pose");
             helper.setBlock(5, 3, 3, net.minecraft.world.level.block.Blocks.STONE);
             hound.setPos(hound.position().add(0.4, 0, 0));
             helper.assertTrue(hound.getCrawlPose() == PaleHoundEntity.CrawlPose.TUNNEL, "A partial roof-edge overlap must prevent the tall pose");
@@ -613,7 +625,7 @@ public final class PortGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "tunnel_test", timeoutTicks = 240)
+    @GameTest(template = "tunnel_test", timeoutTicks = 240, batch = "cave_navigation")
     public static void physicallyTraversesLowTunnel(GameTestHelper helper) {
         for (int x = 0; x < 12; ++x) for (int z = 0; z < 7; ++z)
             helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
@@ -670,7 +682,7 @@ public final class PortGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "tunnel_test", timeoutTicks = 240)
+    @GameTest(template = "tunnel_test", timeoutTicks = 240, batch = "cave_navigation")
     public static void leavesHighCaveLedgeWithoutGettingStranded(GameTestHelper helper) {
         for (int x = 0; x < 12; ++x) for (int z = 0; z < 8; ++z)
             helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
@@ -692,7 +704,7 @@ public final class PortGameTests {
         });
     }
 
-    @GameTest(template = "tunnel_test", timeoutTicks = 300)
+    @GameTest(template = "tunnel_test", timeoutTicks = 300, batch = "cave_navigation")
     public static void crawlsAroundNarrowCaveCorner(GameTestHelper helper) {
         for (int x = 0; x < 12; ++x) for (int z = 0; z < 8; ++z)
             for (int y = 0; y <= 3; ++y) helper.setBlock(x, y, z, net.minecraft.world.level.block.Blocks.STONE);
@@ -943,13 +955,13 @@ public final class PortGameTests {
         });
     }
 
-    @GameTest(template = "encounter_test", skyAccess = true, setupTicks = 30)
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30)
     public static void commandEncounterBypassesGatesAndPreservesTimers(GameTestHelper helper) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var level = helper.getLevel();
         var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
             new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "ForcedEncounterTest"));
         player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
-        player.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(32, 2, 32))));
+        player.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64))));
         level.addNewPlayer(player);
         var dispatcher = level.getServer().getCommands().getDispatcher();
         var source = player.createCommandSourceStack().withPermission(2);
@@ -977,6 +989,7 @@ public final class PortGameTests {
             helper.assertTrue(hounds.size() == 1, "Command must create exactly one encounter");
             var hound = hounds.getFirst();
             hound.setNoAi(true);
+            helper.assertTrue(hound.distanceToSqr(player) >= 32 * 32, "Forced encounter spawned too close");
             helper.assertTrue(hound.isCommandEncounter() && hound.hasSpawned && !hound.isInvisible(), "Encounter did not initialize natural behavior");
             helper.assertTrue(hound.isSurfaceStalking() || hound.getTarget() == player, "Creative command recipient was ignored");
             helper.assertTrue(level.noCollision(hound, hound.getBoundingBox().deflate(0.00001)), "Forced encounter spawned inside a wall");
@@ -992,12 +1005,15 @@ public final class PortGameTests {
                 hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.STROLL;
                 helper.assertTrue(hound.tryStartSurfaceStalking(player), "Forced Creative target should be valid for stalking");
             }
+            hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64))));
+            player.setPos(hound.position().add(40, 0, 0));
             Vec3 look = hound.getEyePosition().subtract(player.getEyePosition());
             player.setYRot((float)Math.toDegrees(Math.atan2(-look.x, look.z)));
             player.setYHeadRot(player.getYRot());
             player.setXRot((float)-Math.toDegrees(Math.atan2(look.y, Math.hypot(look.x, look.z))));
-            hound.tick();
+            for (int i = 0; i < 160; ++i) hound.tick();
             helper.assertTrue(hound.isSurfaceStalkRetreating(), "Command encounter should react naturally to a Creative player's gaze");
+            hound.setPos(hound.position().add(1024, 0, 0));
             for (int i = 0; i < 60; ++i) hound.tick();
             helper.assertTrue(hound.isRemoved(), "Command encounter should still finish its retreat and despawn");
             helper.assertTrue(spawnBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn"))
@@ -1016,19 +1032,22 @@ public final class PortGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "encounter_test", skyAccess = true, setupTicks = 30, timeoutTicks = 100)
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, timeoutTicks = 100)
     public static void surfaceRetreatRunsAwayOnOneRoute(GameTestHelper helper) {
         var level = helper.getLevel();
         var hound = ModEntityTypes.PALE_HOUND.get().create(level);
-        Vec3 start = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(32, 2, 32)));
+        Vec3 start = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64)));
         hound.setPos(start);
         level.addFreshEntity(hound);
         var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
             new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "RetreatTest"));
         player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
-        player.setPos(start.add(-20, 0, 0));
+        player.setPos(start.add(-40, 0, 0));
         level.addNewPlayer(player);
         helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start physical retreat fixture: houndSurface=" + de.cadentem.pale_hound.util.Utils.isOnSurface(hound) + " playerSurface=" + de.cadentem.pale_hound.util.Utils.isOnSurface(player));
+        hound.setNoAi(true);
+        for (int i = 0; i < 160; ++i) hound.tick();
+        hound.setNoAi(false);
         Vec3 look = hound.getEyePosition().subtract(player.getEyePosition());
         player.setYRot((float)Math.toDegrees(Math.atan2(-look.x, look.z)));
         player.setYHeadRot(player.getYRot());
@@ -1038,8 +1057,9 @@ public final class PortGameTests {
             if (hound.isRemoved()) return;
             var route = hound.getNavigation().getPath();
             if (route != null && !route.isDone() && hound.isSurfaceStalkRetreating()) {
-                firstRoute.compareAndSet(null, route);
-                helper.assertTrue(firstRoute.get() == route, "Working retreat route was replaced and could cause circling");
+                if (firstRoute.get() != null && !firstRoute.get().isDone())
+                    helper.assertTrue(firstRoute.get() == route, "Working retreat route was replaced and could cause circling");
+                firstRoute.set(route);
             }
             helper.assertTrue(Math.abs(hound.getZ() - start.z) < 1, "Retreat circled sideways on open ground");
             helper.assertTrue(!hound.canAttack(player), "Retreating Hound should not attack");

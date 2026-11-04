@@ -132,7 +132,7 @@ public class ServerConfig {
         RESET_NOISE_MAX = BUILDER.comment("Maximum time between noise occurrences in seconds").defineInRange("reset_noise_max", 860, 0, 86400);
         BUILDER.pop();
         BUILDER.push("Leave");
-        PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);
+        PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; escapes last until out of sight.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);
         TIME_UNTIL_LEAVE = BUILDER.comment("Time (in seconds) it takes for the Pale Hound to leave").defineInRange("time_until_leave", 300, 1, 6000);
         TIME_UNTIL_LEAVE_CHASE = BUILDER.comment("Time (in seconds) it takes for the Pale Hound to leave once a chase begins").defineInRange("time_until_leave_chase", 30, 1, 600);
         BUILDER.pop();

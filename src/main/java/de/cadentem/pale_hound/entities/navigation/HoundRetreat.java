@@ -13,6 +13,10 @@ public final class HoundRetreat {
     public void reset() { direction = null; }
 
     @Nullable public Path findPath(PaleHoundEntity hound, Vec3 threat) {
+        return findPath(hound, threat, false);
+    }
+
+    @Nullable public Path findPath(PaleHoundEntity hound, Vec3 threat, boolean careful) {
         Vec3 away = hound.position().subtract(threat).multiply(1, 0, 1).normalize();
         if (away.lengthSqr() < 0.001) away = new Vec3(1, 0, 0);
         if (direction == null || direction.dot(away) < 0.25) direction = away;
@@ -26,6 +30,10 @@ public final class HoundRetreat {
                 || end.subtract(hound.position()).dot(direction) < 4) continue;
             boolean returnsTowardPlayer = false;
             for (int i = 0; i < path.getNodeCount(); ++i) {
+                if (careful && i > 0 && path.getNode(i - 1).y - path.getNode(i).y > 1) {
+                    returnsTowardPlayer = true;
+                    break;
+                }
                 if (horizontalDistance(Vec3.atBottomCenterOf(path.getNode(i).asBlockPos()), threat) < Math.max(0, startDistance - 1)) {
                     returnsTowardPlayer = true;
                     break;

@@ -134,7 +134,7 @@ public class Utils {
             T entity = (T)entityType.create(level, null, mutableBlockPosition, spawnType, false, false);
             if (entity instanceof PaleHoundEntity) {
                if (entity.checkSpawnRules(level, spawnType) && entity.checkSpawnObstruction(level)) {
-                  boolean isValidSpawn = entity.level().getNearestPlayer(entity, ((Integer)ServerConfig.SPAWN_DISTANCE.get()).intValue()) == null;
+                  boolean isValidSpawn = entity.level().getNearestPlayer(entity, Math.max(ServerConfig.SPAWN_DISTANCE.get(), Utils.isOnSurface(currentVictim) ? 32 : 0)) == null;
                   if (isValidSpawn && (Boolean)ServerConfig.CHECK_PATH_TO_SPAWN.get()) {
                      Path path = entity.getNavigation().createPath(currentVictim, 0);
                      isValidSpawn = path != null && path.canReach();

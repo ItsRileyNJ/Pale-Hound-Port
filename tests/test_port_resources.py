@@ -44,6 +44,8 @@ class PortResources(unittest.TestCase):
         actual['animations'].pop('animation.pale_hound.crawl_idle')
         actual['animations'].pop('animation.pale_hound.crawl_low')
         actual['animations'].pop('animation.pale_hound.crawl_low_idle')
+        for name in ['crawl_backward', 'crawl_tunnel_backward', 'crawl_low_backward']:
+            actual['animations'].pop('animation.pale_hound.' + name)
         actual['animations'].pop('animation.pale_hound.crawl_tunnel')
         actual['animations'].pop('animation.pale_hound.crawl_tunnel_idle')
         self.assertEqual(actual, expected)
@@ -90,6 +92,22 @@ class PortResources(unittest.TestCase):
             # Compression about the base pivot must keep the feet on the floor.
             self.assertAlmostEqual(19.5 * (1 - base['scale'][1]) + base['position'][1], 0)
 
+    def test_reverse_crawls_plant_limbs_in_reverse_order(self):
+        animations = json.loads((RES / 'assets/pale_hound/animations/pale_hound.animation.json').read_text())['animations']
+        for pose in ['crawl', 'crawl_tunnel', 'crawl_low']:
+            normal = animations['animation.pale_hound.' + pose]
+            reverse = animations['animation.pale_hound.' + pose + '_backward']
+            self.assertTrue(reverse['loop'])
+            self.assertEqual(reverse['animation_length'], normal['animation_length'])
+            for bone, channels in normal['bones'].items():
+                for name, value in channels.items():
+                    actual = reverse['bones'][bone][name]
+                    if isinstance(value, dict):
+                        for time, frame in value.items():
+                            self.assertEqual(actual[f"{1.6 - float(time):.4f}"], frame)
+                    else:
+                        self.assertEqual(actual, value)  # Preserve head/neck attachment and clearance.
+
     def test_user_audio_encoding_and_event_pools(self):
         clips = json.loads((ROOT / 'docs/USER_AUDIO.json').read_text())['clips']
         self.assertEqual(len(clips), 13)
@@ -119,7 +137,7 @@ class PortResources(unittest.TestCase):
                         'STORY_HOSTILE_ALLOWLIST = BUILDER.comment("Hostile entity IDs allowed in Story difficulty. Empty blocks all hostiles. Other difficulties are unaffected.").defineListAllowEmpty("story_hostile_allowlist", List.of("pale_hound:pale_hound"), value -> value instanceof String id && id.contains(":") && net.minecraft.resources.ResourceLocation.tryParse(id) != null);',
                         'SURFACE_STALK_DURATION_MULTIPLIER = BUILDER.comment("Additional multiplier for surface stalking duration; 2.0 gives about 3 to 4.5 minutes with default presence settings.").defineInRange("surface_stalk_duration_multiplier", 2.0, 0.1, 10.0);',
                         'SURFACE_SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Additional surface-only spawn wait multiplier; 2.0 doubles surface waits without changing cave or noise timers.").defineInRange("surface_spawn_timer_multiplier", 2.0, 0.1, 10.0);',
-                        'PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);',
+                        'PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; escapes last until out of sight.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);',
                         'ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);',
                         'ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);',
                         'FOREST_SPAWN_CHANCE_MULTIPLIER = BUILDER.comment("Scale the ready-to-spawn chance in forested biomes; 1.25 is a 25% bonus. Does not change timers.").defineInRange("forest_spawn_chance_multiplier", 1.25, 0.0, 5.0);',

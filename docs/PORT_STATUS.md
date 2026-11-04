@@ -414,3 +414,53 @@ and transitions to Easy and Hard. The actual client menus passed automated cycli
 server packet activation/state synchronization, leaving Story for Easy, new-world
 Story selection and Hardcore/logout checks. Development smoke tests and structures
 are excluded from the distributable.
+
+
+## Follow-up: heavy stalking, backward crawl and out-of-sight escapes (1.10.8)
+
+Command encounters now prefer 48/40/32-block ground locations, with a 32-block air
+fallback. Surface natural spawning widens its search to 40 blocks per horizontal
+axis and enforces at least 32 blocks from the nearest player; larger configured
+minimums still win and cave minimums remain configurable as before. Commands preserve
+their timer exemption and other bypasses, subject to the Story hostile allowlist.
+
+Above-ground stalking holds position and faces the player within a 28–48-block watch
+band. It follows toward a 40-block ring when farther away. A close approach inside
+28 blocks starts slow backward crawling until 36 blocks away, without changing to
+full fleeing or attacking. A dedicated movement control follows an outward path
+with reverse/lateral input while the body stays facing the player. Backoff uses 0.22
+speed versus 0.35 following and rejects routes requiring a drop of more than one
+block per node. Three reverse-loop assets retain the tall/tunnel/low rig poses and
+reverse the planted-limb cycle, rather than playing a forward gait during retreat.
+
+Arrival gets 160 ticks of gaze grace. Direct gaze outside 36 blocks still triggers
+escape after that; close approaches refresh 60 ticks of grace and use backoff.
+The existing shortened next-spawn wait still applies once after a naturally spawned,
+spotted Hound actually disappears; command encounters do not touch the timers.
+
+Surface retreat no longer counts down to removal at 60 ticks. Both it and ordinary
+fleeing require sustained loss of visibility from all nearby players for 20 ticks,
+with a minimum run duration. Looking away does not count. Visibility includes the
+exposed head, and uses the server-scaled entity tracking radius clamped by each
+player's requested/server view distance, with a small departure margin. Vanilla
+random despawn and the ordinary lifetime cannot interrupt active stalking/fleeing.
+Chunk loading rules still apply. Open-ground routes skip intermediate block centers
+only across sampled full-body clearance, safe solid ground and no hazards; cave
+corner traversal stays precise. This removes the alternating cardinal headings on
+straight diagonal escapes while preserving obstacle avoidance and stable paths.
+
+Animation playback is multiplied by 0.75 following the user's choice. The controller
+now blends for 12 ticks instead of three, and pose expansion waits for ten ticks of
+stable headroom. Physical dimensions still adjust immediately for collision safety.
+The backing state is synchronized; network protocol 4 requires updating both ends.
+
+All 42 server GameTests and ten resource/config checks pass. New coverage physically
+checks reverse movement/facing and diagonal heading stability, arrival grace, watching,
+visible-versus-occluded removal including the tall head, and wall/hole rejection for
+straight shortcuts. Existing tests now cover farther command placement, unchanged
+timers, extended retreat completion and stable headroom expansion. A larger 128-block
+arena keeps the new distances inside GameTest boundary barriers, and movement-only
+cave fixtures run separately from surface-player fixtures. Client checks compile the
+three new reverse assets with GeckoLib, exercise the actual animation-state handler
+for all poses and idle stopping, and verify the 25% speed and 12-tick blend settings.
+Development fixtures and structure NBT files are excluded from the release JAR.

@@ -79,12 +79,18 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private final RawAnimation CRAWL_TUNNEL_IDLE = RawAnimation.begin().then("animation.pale_hound.crawl_tunnel_idle", LoopType.LOOP);
    private final RawAnimation CRAWL_LOW = RawAnimation.begin().then("animation.pale_hound.crawl_low", LoopType.LOOP);
    private final RawAnimation CRAWL_LOW_IDLE = RawAnimation.begin().then("animation.pale_hound.crawl_low_idle", LoopType.LOOP);
+   private final RawAnimation CRAWL_BACKWARD = RawAnimation.begin().thenLoop("animation.pale_hound.crawl_backward");
+   private final RawAnimation CRAWL_TUNNEL_BACKWARD = RawAnimation.begin().thenLoop("animation.pale_hound.crawl_tunnel_backward");
+   private final RawAnimation CRAWL_LOW_BACKWARD = RawAnimation.begin().thenLoop("animation.pale_hound.crawl_low_backward");
+   public static final double ANIMATION_SPEED = 0.75;
+   public static final int POSTURE_BLEND_TICKS = 12;
    private final RawAnimation FLEE = RawAnimation.begin().then("animation.pale_hound.flee", LoopType.LOOP);
    public static final EntityDataAccessor<Boolean> FLEEING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> CROUCHING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> CRAWLING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> SPOTTED_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> CLIMBING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
+   public static final EntityDataAccessor<Boolean> BACKING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public Roll currentRoll = Roll.STROLL;
    private Player surfaceStalkTarget;
    private java.util.UUID commandEncounterPlayer;
@@ -92,6 +98,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private boolean spottedDuringSurfaceStalk;
    private int surfaceStalkTicks;
    private int surfaceRetreatTicks;
+   private int surfaceGazeGraceTicks;
+   private final de.cadentem.pale_hound.entities.navigation.HoundEscapeVisibility escapeVisibility = new de.cadentem.pale_hound.entities.navigation.HoundEscapeVisibility();
    // Prefer stalking before ordinary target acquisition gets a chance on the first tick.
    private int surfaceStalkCheckTicks;
    public boolean isFleeing;
@@ -100,6 +108,9 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public boolean targetIsFacingMe;
    private int ticksTillRemove;
    private int idleRecoveryTicks;
+   private CrawlPose animationCrawlPose = CrawlPose.TALL;
+   private CrawlPose pendingAnimationPose = CrawlPose.TALL;
+   private int animationPosePendingSince;
    private PaleHoundRoamGoal roamingGoal;
    private int chaseSoundClock;
    private boolean alreadyPlayedFleeSound;
@@ -109,6 +120,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    public PaleHoundEntity(EntityType<? extends PaleHoundEntity> entityType, Level level) {
       super(entityType, level);
+      this.moveControl = new de.cadentem.pale_hound.entities.navigation.HoundMoveControl(this);
       this.refreshDimensions();
       this.ticksTillRemove = Utils.presenceTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE.get());
       this.setPathfindingMalus(PathType.UNPASSABLE_RAIL, 0.0F);
@@ -168,6 +180,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       builder.define(CRAWLING_ACCESSOR, false);
       builder.define(SPOTTED_ACCESSOR, false);
       builder.define(CLIMBING_ACCESSOR, false);
+      builder.define(BACKING_ACCESSOR, false);
    }
 
    protected void registerGoals() {
@@ -210,6 +223,9 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public boolean isSurfaceStalking() {
       return this.surfaceStalkTarget != null;
    }
+
+   public boolean isBackingAway() { return this.entityData.get(BACKING_ACCESSOR); }
+   public void setBackingAway(boolean backing) { this.entityData.set(BACKING_ACCESSOR, backing); }
 
    public boolean isCommandEncounter() { return this.commandEncounterPlayer != null; }
 
@@ -274,6 +290,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.surfaceStalkTicks = (int)Math.ceil(Utils.scalePresenceTicks(this.getRandom().nextIntBetweenInclusive(600, 900))
          * ServerConfig.SURFACE_STALK_DURATION_MULTIPLIER.get());
       this.surfaceRetreatTicks = 0;
+      this.surfaceGazeGraceTicks = 160;
+      this.escapeVisibility.reset();
       this.getNavigation().stop();
       return true;
    }
@@ -292,6 +310,15 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          && PaleHoundTargets.isAllowed(target, this) && super.canAttack(target);
    }
 
+   @Override public void checkDespawn() {
+      if ((this.isSurfaceStalking() || this.isFleeing || this.currentRoll == Roll.FLEE)
+         && (this.level().getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL || this.isCommandEncounter())) {
+         this.setNoActionTime(0);
+         return;
+      }
+      super.checkDespawn();
+   }
+
    @Override protected boolean shouldDespawnInPeaceful() {
       return !this.isCommandEncounter() && super.shouldDespawnInPeaceful();
    }
@@ -307,15 +334,19 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          }
       }
       if (this.isSurfaceStalking()) {
+         if (this.surfaceGazeGraceTicks > 0) this.surfaceGazeGraceTicks--;
+         if (this.surfaceStalkTarget != null && this.distanceToSqr(this.surfaceStalkTarget) < 36 * 36)
+            this.surfaceGazeGraceTicks = Math.max(this.surfaceGazeGraceTicks, 60);
          if (this.isSurfaceStalkRetreating()) {
-            if (--this.surfaceRetreatTicks <= 0) {
+            if (this.escapeVisibility.canDisappear(this, 60)) {
                if (this.spottedDuringSurfaceStalk && !this.isCommandEncounter() && this.level() instanceof ServerLevel serverLevel) {
                   PaleHound.scheduleSpawnAfterSpottedRetreat(serverLevel);
                }
                this.disappear();
                return;
             }
-         } else if (this.level().players().stream().anyMatch(player -> this.isLookingAtMe(player, true))) {
+         } else if (this.surfaceGazeGraceTicks <= 0 && this.level().players().stream()
+            .anyMatch(player -> this.distanceToSqr(player) >= 36 * 36 && this.isLookingAtMe(player, true))) {
             this.spottedDuringSurfaceStalk = true;
             this.surfaceRetreatTicks = 60;
             this.getNavigation().stop();
@@ -325,6 +356,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
             this.surfaceRetreatTicks = 60;
             this.getNavigation().stop();
          }
+         if (this.isSurfaceStalkRetreating()) this.setBackingAway(false);
          this.setTarget(null);
          this.setAggressive(false);
          this.currentRoll = Roll.STROLL;
@@ -341,7 +373,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       if (this.isRemoved()) return;
       if (!this.level().isClientSide()) this.updateSurfaceStalking();
       if (this.isRemoved()) return;
-      if (!this.level().isClientSide() && !this.isSurfaceStalking() && --this.ticksTillRemove <= 0) {
+      if (!this.level().isClientSide() && !this.isSurfaceStalking() && !this.isFleeing && this.currentRoll != Roll.FLEE && --this.ticksTillRemove <= 0) {
          this.disappear();
          return;
       }
@@ -417,6 +449,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
 
    public double getSpeedModifier() {
       if (this.isSurfaceStalkRetreating() || this.isFleeing) return 1.2;
+      if (this.isBackingAway()) return 0.22;
       return this.isCrawling() ? 0.35 : (this.isCrouching() ? 0.6 : 0.85);
    }
 
@@ -476,9 +509,9 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private PlayState predicate(AnimationState<PaleHoundEntity> state) {
       boolean isCurrentAboveSolid = this.level().getBlockState(this.blockPosition().above()).isSolid();
       boolean isCurrentTwoAboveSolid = this.level().getBlockState(this.blockPosition().above(2)).isSolid();
-      state.getController().setAnimationSpeed(1.0);
+      state.getController().setAnimationSpeed(ANIMATION_SPEED);
       if (this.isCrawling() || isCurrentAboveSolid) {
-         CrawlPose pose = this.getCrawlPose();
+         CrawlPose pose = this.getAnimationCrawlPose();
          if (!state.isMoving()) return state.setAndContinue(switch (pose) {
             case TALL -> this.CRAWL_IDLE;
             case TUNNEL -> this.CRAWL_TUNNEL_IDLE;
@@ -486,7 +519,12 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          });
          Vec3 velocity = this.getDeltaMovement();
          double speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-         state.getController().setAnimationSpeed(Math.max(0.75, Math.min(3.0, speed * 50)));
+         state.getController().setAnimationSpeed(ANIMATION_SPEED * Math.max(0.75, Math.min(3.0, speed * 50)));
+         if (this.isBackingAway()) return state.setAndContinue(switch (pose) {
+            case TALL -> this.CRAWL_BACKWARD;
+            case TUNNEL -> this.CRAWL_TUNNEL_BACKWARD;
+            case LOW -> this.CRAWL_LOW_BACKWARD;
+         });
          return state.setAndContinue(switch (pose) {
             case TALL -> this.CRAWL;
             case TUNNEL -> this.CRAWL_TUNNEL;
@@ -506,7 +544,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    }
 
    public void registerControllers(ControllerRegistrar registrar) {
-      registrar.add(new AnimationController<>(this, "controller", 3, this::predicate));
+      registrar.add(new AnimationController<>(this, "controller", POSTURE_BLEND_TICKS, this::predicate));
    }
 
    public AnimatableInstanceCache getAnimatableInstanceCache() {
@@ -665,6 +703,22 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       var tunnelBounds = new net.minecraft.world.phys.AABB(tallBounds.minX, tallBounds.minY, tallBounds.minZ,
          tallBounds.maxX, this.getY() + 2.0 * this.getScale() - 0.000001, tallBounds.maxZ);
       return this.level().getBlockCollisions(this, tunnelBounds).iterator().hasNext() ? CrawlPose.LOW : CrawlPose.TUNNEL;
+   }
+
+   /** Compress promptly, but require half a second of clearance before rising again. */
+   public CrawlPose getAnimationCrawlPose() {
+      CrawlPose requested = this.getCrawlPose();
+      if (requested.ordinal() >= this.animationCrawlPose.ordinal()) {
+         this.animationCrawlPose = requested;
+         this.pendingAnimationPose = requested;
+         this.animationPosePendingSince = this.tickCount;
+      } else if (requested != this.pendingAnimationPose) {
+         this.pendingAnimationPose = requested;
+         this.animationPosePendingSince = this.tickCount;
+      } else if (this.tickCount - this.animationPosePendingSince >= 10) {
+         this.animationCrawlPose = requested;
+      }
+      return this.animationCrawlPose;
    }
 
    private boolean hasStandingClearance(Vec3 position) {

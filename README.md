@@ -54,7 +54,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.7-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.8-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -70,7 +70,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for thirty-seven in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for forty-two in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -107,10 +107,15 @@ This is an intentional behavior change requested after the original port.
 On his first tick after spawning, an eligible surface Hound has a 90% chance to
 begin stalking a player within 64 blocks before normal attack targeting runs.
 If he remains idle, he retries at 90% every five seconds. This does not interrupt a chase or flee.
-He crawls after the player, aims to stay 16–24 blocks away, and backs off when approached.
+He watches the player from roughly 28–48 blocks away, turning his body and head toward
+them while holding position. Beyond that range he follows toward a 40-block standoff.
+Inside 28 blocks he slowly crawls backward, facing the player, until at least 36 blocks
+away. The separate start/stop distances prevent shuffling between follow and backoff.
 All attacks are blocked during stalking and retreat, including at melee distance.
-After 180–270 seconds by default he runs away, then despawns after three seconds. Losing the player
-or leaving the surface starts the retreat early. His normal lifetime countdown pauses
+After 180–270 seconds by default he runs away. He runs for at least three seconds and
+must stay out of sight of every nearby player for one second before despawning.
+Looking away alone does not remove him. Losing the player or leaving the surface
+starts the retreat early. His normal lifetime countdown pauses
 during this sequence so it can finish; removal is controlled by the server.
 
 ## Spawn pacing
@@ -125,9 +130,11 @@ Use `1.0` to restore the original spawn pacing. Noise timers are unaffected.
 
 ## Being spotted and attack targets
 
-Direct eye contact from a valid player during stalking starts the running retreat
-immediately. It requires clear line of sight and respects the spotting-range setting.
-After the three-second retreat/despawn, that dimension's next spawn wait is reset to
+Direct eye contact from at least 36 blocks away starts the running retreat after an
+eight-second arrival grace period. It requires clear line of sight and respects the
+spotting-range setting. Close approaches get backward crawling instead, with three
+seconds of gaze grace after opening distance again. Once he escapes out of sight and
+despawns, that dimension's next spawn wait is reset to
 25% of the configured wait (including the spawn-timer multiplier). This bonus applies
 once; later successful spawns use normal timing. Normal spawn eligibility rules remain.
 
@@ -149,8 +156,9 @@ The video render-distance setting and loaded/tracked chunks still limit visibili
 
 `[Timers.Leave].presence_time_multiplier` defaults to `3.0`. With the original base
 settings this gives a 15-minute normal lifetime, 90-second chase leave timer, and
-180–270-second stalking duration with the additional default surface-stalk multiplier. Eye-contact retreats and their three-second despawn
-still take priority. Normal distance-based despawning and chunk loading rules apply.
+180–270-second stalking duration with the additional default surface-stalk multiplier. Eye-contact retreats still take priority. Active stalking/fleeing pauses the normal
+lifetime and vanilla random distance despawn; escape removal requires loss of visibility.
+Normal chunk loading rules still apply.
 Set the multiplier to `1.0` to restore the previous durations. It scales saved base
 settings without rewriting them; ordinary lifetime and chase timers are set when a
 Hound/goal is created, and stalking duration when a stalking sequence starts.
@@ -189,7 +197,7 @@ compressed tunnel variants. The front paw positions stay the same.
 
 Movement speed is now 80% of `[Attributes].movement_speed`: the original setting
 `0.7` produces a base attribute of `0.56`. This applies to existing configs and all
-movement states, including chasing and retreating. Posture multipliers are unchanged;
+movement states, including chasing and retreating. Backward stalking uses a slower 0.22 multiplier;
 applying attributes again does not compound the slowdown.
 
 The fall-immune Hound can now plan descents of up to 32 blocks, rather than becoming
@@ -294,8 +302,8 @@ scheduled spawn/noise timers or applies the natural spotted-respawn bonus. The
 ordinary timers continue normally, so independent timed encounters can still occur.
 
 `[Behaviour].surface_stalk_duration_multiplier = 2.0` doubles surface stalking to
-180–270 seconds with the default presence multiplier, before its three-second retreat.
-It does not extend cave encounters or forced retreats. Existing gaze/target-loss
+180–270 seconds with the default presence multiplier, before running out of sight.
+It does not extend cave encounters. Existing gaze/target-loss
 conditions can still end stalking early.
 
 Retreat keeps a stable escape heading and follows a working route to completion,
@@ -303,3 +311,26 @@ rather than choosing random destinations every second. Routes must finish farthe
 from the threat and cannot loop back close to it. Alternate routes can flank walls.
 The normal flee goal also uses this planner, claims movement/look control, and no
 longer competes with chase/melee movement. Retreats cannot perform melee attacks.
+
+
+## Heavy movement and farther encounters (1.10.8)
+
+Command encounters prefer 48 blocks away, then 40 or 32 if the terrain requires it.
+The clear-air fallback for flying players is also 32 blocks away. Natural surface
+spawns keep at least 32 blocks from players (or a larger configured minimum) and
+search a wider area. Cave minimums still use `spawn_distance`.
+
+All animation playback runs at 75% of its previous speed, as requested. Posture
+blends increase from three to twelve animation ticks, and rising out of a low crawl
+requires half a second of consistent clearance. This smooths standing/crawl/low-crawl
+changes without slowing physical collision adjustments in tunnels. New reverse gait
+loops cover tall, medium and low crawling, retaining the connected head and wide limbs.
+Movement speed remains at the existing 20% reduction; slow backoff is additional.
+
+Escape paths skip the block-center staircase on open ground only when sampled full-
+body clearance, solid ground and hazard checks allow a straight segment. Tight caves
+keep their careful waypoint traversal. Working paths and the escape heading stay
+stable; obstacles can still require a detour. Both surface and normal fleeing keep
+running while visible, considering the exposed head as well as the small crawl eye.
+Passing beyond each player's effective entity tracking range also counts as leaving
+sight. Network protocol 4 requires this update on both client and server.

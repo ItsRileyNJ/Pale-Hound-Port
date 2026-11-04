@@ -27,6 +27,25 @@ public final class HoundRoutes {
         return null;
     }
 
+    public static boolean canWalkStraight(PaleHoundEntity hound, Vec3 destination) {
+        Vec3 start = hound.position();
+        if (Math.abs(destination.y - start.y) > 0.5 || start.distanceToSqr(destination) > 32 * 32) return false;
+        int samples = Math.max(1, (int)Math.ceil(start.distanceTo(destination) * 2));
+        for (int i = 1; i <= samples; ++i) {
+            Vec3 point = start.lerp(destination, i / (double)samples);
+            BlockPos feet = BlockPos.containing(point);
+            if (!hound.level().hasChunkAt(feet)) return false;
+            var bounds = hound.getBoundingBox().move(point.subtract(start)).deflate(0.00001);
+            if (!hound.level().getWorldBorder().isWithinBounds(bounds) || !hound.level().noCollision(hound, bounds)) return false;
+            var floor = hound.level().getBlockState(BlockPos.containing(point.add(0, -0.1, 0)));
+            if (!floor.getFluidState().isEmpty() || floor.getCollisionShape(hound.level(), feet.below()).isEmpty()
+                || floor.is(Blocks.MAGMA_BLOCK) || floor.is(Blocks.CACTUS) || floor.is(Blocks.POWDER_SNOW)) return false;
+            var state = hound.level().getBlockState(feet);
+            if (!state.getFluidState().isEmpty() || state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE)) return false;
+        }
+        return true;
+    }
+
     @Nullable
     public static BlockPos findGround(PaleHoundEntity hound, Vec3 point) {
         BlockPos base = BlockPos.containing(point);
