@@ -153,7 +153,7 @@ public final class PortGameTests {
             var followPath = hound.getNavigation().getPath();
             helper.assertTrue(followPath != null && !followPath.isDone(), "Stalking should path toward a distant player");
             helper.assertTrue(followPath.getTarget().distSqr(player.blockPosition()) >= 16 * 16, "Follow path should leave room before the player");
-            player.setPos(hound.position().add(1, 0, 0));
+            player.setPos(hound.position().add(15, 0, 0));
             goal.start();
             goal.tick();
             var retreatPath = hound.getNavigation().getPath();
@@ -299,7 +299,7 @@ public final class PortGameTests {
         var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
             new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "GazeTest"));
         player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
-        player.setPos(hound.position().add(40, 0, 0));
+        player.setPos(hound.position().add(13, 0, 0));
         helper.getLevel().addNewPlayer(player);
         double chance = ServerConfig.CAN_SPAWN_COOLDOWN_CHANCE.get();
         int cooldown = ServerConfig.CAN_SPAWN_COOLDOWN.get();
@@ -326,8 +326,8 @@ public final class PortGameTests {
             helper.assertTrue(hound.isLookingAtMe(player, true), "Clear direct gaze was not detected: LOS=" + player.hasLineOfSight(hound) + " view=" + player.getViewVector(1) + " delta=" + hound.getEyePosition().subtract(player.getEyePosition()).normalize() + " valid=" + de.cadentem.pale_hound.util.Utils.isValidTarget(player) + " range=" + ServerConfig.SPOTTING_RANGE.get());
             var spawnBefore = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn");
             var noiseBefore = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "noise");
-            hound.tick();
-            helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Direct eye contact should trigger immediate retreat");
+            for (int i = 0; i < 20; ++i) hound.tick();
+            helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Close eye contact should trigger retreat after the reaction pause");
             helper.assertTrue(!hound.isCrawling(), "Spotted hound should run instead of crawl");
             helper.assertTrue(spawnBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn")),
                 "Respawn countdown should start after despawning, not before");
@@ -1007,12 +1007,13 @@ public final class PortGameTests {
                 helper.assertTrue(hound.tryStartSurfaceStalking(player), "Forced Creative target should be valid for stalking");
             }
             hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64))));
-            player.setPos(hound.position().add(40, 0, 0));
+            player.setPos(hound.position().add(13, 0, 0));
+            hound.setCrawling(true);
             Vec3 look = hound.getEyePosition().subtract(player.getEyePosition());
             player.setYRot((float)Math.toDegrees(Math.atan2(-look.x, look.z)));
             player.setYHeadRot(player.getYRot());
             player.setXRot((float)-Math.toDegrees(Math.atan2(look.y, Math.hypot(look.x, look.z))));
-            for (int i = 0; i < 160; ++i) hound.tick();
+            for (int i = 0; i < 200; ++i) hound.tick();
             helper.assertTrue(hound.isSurfaceStalkRetreating(), "Command encounter should react naturally to a Creative player's gaze");
             hound.setPos(hound.position().add(1024, 0, 0));
             for (int i = 0; i < 60; ++i) hound.tick();
@@ -1043,7 +1044,7 @@ public final class PortGameTests {
         var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
             new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "RetreatTest"));
         player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
-        player.setPos(start.add(-40, 0, 0));
+        player.setPos(start.add(-13, 0, 0));
         level.addNewPlayer(player);
         helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start physical retreat fixture: houndSurface=" + de.cadentem.pale_hound.util.Utils.isOnSurface(hound) + " playerSurface=" + de.cadentem.pale_hound.util.Utils.isOnSurface(player));
         hound.setNoAi(true);
@@ -1053,6 +1054,9 @@ public final class PortGameTests {
         player.setYRot((float)Math.toDegrees(Math.atan2(-look.x, look.z)));
         player.setYHeadRot(player.getYRot());
         player.setXRot((float)-Math.toDegrees(Math.atan2(look.y, Math.hypot(look.x, look.z))));
+        hound.setNoAi(true);
+        for (int i = 0; i < 20; ++i) hound.tick();
+        hound.setNoAi(false);
         var firstRoute = new java.util.concurrent.atomic.AtomicReference<net.minecraft.world.level.pathfinder.Path>();
         helper.onEachTick(() -> {
             if (hound.isRemoved()) return;

@@ -99,6 +99,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private int surfaceStalkTicks;
    private int surfaceRetreatTicks;
    private int surfaceGazeGraceTicks;
+   private int surfaceRunReactionTicks;
+   private java.util.UUID surfaceStalkAttackTarget;
    private final de.cadentem.pale_hound.entities.navigation.HoundEscapeVisibility escapeVisibility = new de.cadentem.pale_hound.entities.navigation.HoundEscapeVisibility();
    // Prefer stalking before ordinary target acquisition gets a chance on the first tick.
    private int surfaceStalkCheckTicks;
@@ -265,6 +267,29 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.commandEncounterPlayer = tag.hasUUID("CommandEncounterPlayer") ? tag.getUUID("CommandEncounterPlayer") : null;
    }
 
+   public boolean isSurfaceStalkAttack() {
+      return this.surfaceStalkAttackTarget != null && this.getTarget() != null
+         && this.surfaceStalkAttackTarget.equals(this.getTarget().getUUID());
+   }
+
+   private void attackFromSurfaceStalking(Player player) {
+      this.surfaceStalkTarget = null;
+      this.surfaceRetreatTicks = 0;
+      this.surfaceRunReactionTicks = 0;
+      this.surfaceStalkCheckTicks = 100;
+      this.setBackingAway(false);
+      this.isFleeing = false;
+      this.entityData.set(FLEEING_ACCESSOR, false);
+      this.setSpotted(false);
+      this.setInvisible(false);
+      this.pleaseStopMoving = false;
+      this.getNavigation().stop();
+      this.currentRoll = Roll.CHASE;
+      this.setTarget(player);
+      this.surfaceStalkAttackTarget = player.getUUID();
+      this.setAggressive(true);
+   }
+
    public Player getSurfaceStalkTarget() {
       return this.surfaceStalkTarget;
    }
@@ -291,6 +316,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          * ServerConfig.SURFACE_STALK_DURATION_MULTIPLIER.get());
       this.surfaceRetreatTicks = 0;
       this.surfaceGazeGraceTicks = 160;
+      this.surfaceRunReactionTicks = 0;
       this.escapeVisibility.reset();
       this.getNavigation().stop();
       return true;
@@ -300,6 +326,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public void setTarget(LivingEntity target) {
       LivingEntity previous = this.getTarget();
       super.setTarget(!this.isSurfaceStalking() && PaleHoundTargets.isAllowed(target, this) ? target : null);
+      if (this.surfaceStalkAttackTarget != null && (this.getTarget() == null || !this.surfaceStalkAttackTarget.equals(this.getTarget().getUUID())))
+         this.surfaceStalkAttackTarget = null;
       if (!this.level().isClientSide() && this.encounterAudio != null && this.getTarget() instanceof Player player && previous != player)
          this.encounterAudio.playerDetected(player);
    }
@@ -335,8 +363,18 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       }
       if (this.isSurfaceStalking()) {
          if (this.surfaceGazeGraceTicks > 0) this.surfaceGazeGraceTicks--;
-         if (this.surfaceStalkTarget != null && this.distanceToSqr(this.surfaceStalkTarget) < 36 * 36)
-            this.surfaceGazeGraceTicks = Math.max(this.surfaceGazeGraceTicks, 60);
+         if (!this.isSurfaceStalkRetreating()) {
+            // Crowding him into 12 blocks takes priority over both the gaze reaction and backing off.
+            Player intruder = this.level().players().stream()
+               .filter(player -> this.isValidEncounterTarget(player) && this.distanceToSqr(player) <= 12 * 12
+                  && Utils.isOnSurface(player) && this.hasLineOfSight(player))
+               .min(java.util.Comparator.comparingDouble(this::distanceToSqr)).orElse(null);
+            if (intruder != null) {
+               this.attackFromSurfaceStalking(intruder);
+               this.targetSelector.setControlFlag(net.minecraft.world.entity.ai.goal.Goal.Flag.TARGET, false);
+               return;
+            }
+         }
          if (this.isSurfaceStalkRetreating()) {
             if (this.escapeVisibility.canDisappear(this, 60)) {
                if (this.spottedDuringSurfaceStalk && !this.isCommandEncounter() && this.level() instanceof ServerLevel serverLevel) {
@@ -345,16 +383,22 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
                this.disappear();
                return;
             }
-         } else if (this.surfaceGazeGraceTicks <= 0 && this.level().players().stream()
-            .anyMatch(player -> this.distanceToSqr(player) >= 36 * 36 && this.isLookingAtMe(player, true))) {
-            this.spottedDuringSurfaceStalk = true;
-            this.surfaceRetreatTicks = 60;
-            this.getNavigation().stop();
-         } else if (--this.surfaceStalkTicks <= 0 || !this.isValidEncounterTarget(this.surfaceStalkTarget)
-            || !Utils.isOnSurface(this) || !Utils.isOnSurface(this.surfaceStalkTarget)
-            || this.distanceToSqr(this.surfaceStalkTarget) > 80 * 80) {
-            this.surfaceRetreatTicks = 60;
-            this.getNavigation().stop();
+         } else {
+            // Begin reacting at 14 blocks, and allow a one-second rush inside the 12-block attack radius.
+            double reactionRange = this.surfaceRunReactionTicks > 0 ? 16 : 14;
+            boolean closeGaze = this.surfaceGazeGraceTicks <= 0 && this.level().players().stream()
+               .anyMatch(player -> this.distanceToSqr(player) <= reactionRange * reactionRange && this.isLookingAtMe(player, true));
+            this.surfaceRunReactionTicks = closeGaze ? this.surfaceRunReactionTicks + 1 : 0;
+            if (this.surfaceRunReactionTicks >= 20) {
+               this.spottedDuringSurfaceStalk = true;
+               this.surfaceRetreatTicks = 60;
+               this.getNavigation().stop();
+            } else if (--this.surfaceStalkTicks <= 0 || !this.isValidEncounterTarget(this.surfaceStalkTarget)
+               || !Utils.isOnSurface(this) || !Utils.isOnSurface(this.surfaceStalkTarget)
+               || this.distanceToSqr(this.surfaceStalkTarget) > 80 * 80) {
+               this.surfaceRetreatTicks = 60;
+               this.getNavigation().stop();
+            }
          }
          if (this.isSurfaceStalkRetreating()) this.setBackingAway(false);
          this.setTarget(null);
@@ -366,7 +410,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          this.pleaseStopMoving = false;
          this.setInvisible(false);
       }
-      this.targetSelector.setControlFlag(net.minecraft.world.entity.ai.goal.Goal.Flag.TARGET, !this.isSurfaceStalking());
+      this.targetSelector.setControlFlag(net.minecraft.world.entity.ai.goal.Goal.Flag.TARGET, !this.isSurfaceStalking() && !this.isSurfaceStalkAttack());
    }
 
    public void tick() {

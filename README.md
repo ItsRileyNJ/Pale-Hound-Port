@@ -54,7 +54,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.9-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.10-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -70,7 +70,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for forty-two in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for forty-five in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -107,11 +107,16 @@ This is an intentional behavior change requested after the original port.
 On his first tick after spawning, an eligible surface Hound has a 90% chance to
 begin stalking a player within 64 blocks before normal attack targeting runs.
 If he remains idle, he retries at 90% every five seconds. This does not interrupt a chase or flee.
-He watches the player from roughly 28–48 blocks away, turning his body and head toward
-them while holding position. Beyond that range he follows toward a 40-block standoff.
-Inside 28 blocks he slowly crawls backward, facing the player, until at least 36 blocks
-away. The separate start/stop distances prevent shuffling between follow and backoff.
-All attacks are blocked during stalking and retreat, including at melee distance.
+He watches the player at a distance, turning his body and head toward them while
+holding position up to 48 blocks away. Beyond that range he follows toward a
+40-block standoff. Inside 16 blocks he slowly backs away while facing the player,
+and stops backing off once 20 blocks away.
+
+A visible eligible player within **12 blocks** ends passive stalking and triggers a
+committed chase and melee attack. This takes priority over a pending gaze reaction,
+and does not require the player to look at him. Creative/Spectator protections remain
+for ordinary encounters; the explicit command-recipient exception still applies.
+A full running retreat remains non-attacking.
 After 180–270 seconds by default he runs away. He runs for at least three seconds and
 must stay out of sight of every nearby player for one second before despawning.
 Looking away alone does not remove him. Losing the player or leaving the surface
@@ -130,11 +135,13 @@ Use `1.0` to restore the original spawn pacing. Noise timers are unaffected.
 
 ## Being spotted and attack targets
 
-Direct eye contact from at least 36 blocks away starts the running retreat after an
-eight-second arrival grace period. It requires clear line of sight and respects the
-spotting-range setting. Close approaches get backward crawling instead, with three
-seconds of gaze grace after opening distance again. Once he escapes out of sight and
-despawns, that dimension's next spawn wait is reset to
+Distant eye contact no longer makes a surface stalker flee. After the eight-second
+arrival grace, direct eye contact inside **14 blocks** begins a **one-second reaction
+pause**. The reaction can continue up to 16 blocks away, giving the player time to
+cross into the 12-block attack radius. Crossing that boundary wins over retreat.
+Losing eye contact or moving beyond 16 blocks cancels the pending reaction. A player
+who holds that close gaze without entering attack range causes him to run away.
+Once he escapes out of sight and despawns, that dimension's next spawn wait resets to
 25% of the configured wait (including the spawn-timer multiplier). This bonus applies
 once; later successful spawns use normal timing. Normal spawn eligibility rules remain.
 
@@ -142,8 +149,8 @@ Attack targets are restricted to players, sheep, villagers, iron golems, wolves 
 and Fantasy Feudalism: Mercenaries entities `villagerscontract:defender`,
 `caravan_villager`, `caravan_trader`, and `caravan_mule`. Horses bearing that mod's
 `FFMCaravan` UUID are also recognized as caravan members. Ordinary horses,
-wandering traders and other mobs are excluded, including from retaliation. Stalking
-and retreat still suppress attacks against every target.
+wandering traders and other mobs are excluded, including from retaliation. Passive stalking ends when a visible player crowds inside 12 blocks. Running
+retreat still suppresses attacks against every target.
 
 The Mercenaries mod is optional, and its JAR is not bundled. For compatibility testing
 with your own copy, use `./gradlew runGameTestServer -PmercenariesJar=/absolute/path/to/mod.jar`.
@@ -360,3 +367,14 @@ The slow standing/crawl posture blends remain. Running away now enters its gait
 with a three-tick transition and scales standing playback from 1x to 3x with actual horizontal
 movement; the longer crawl loop can scale up to 6x during a fast escape. This prevents a long, slowed blend from looking frozen while he sprints.
 Network protocol 5 requires updating both client and server.
+
+
+## Close-range surface attacks (1.10.10)
+
+Surface stalking now permits close approaches: slow backoff starts at 16 blocks,
+gaze-triggered running starts around 14 blocks after a one-second reaction, and a
+visible player at or inside 12 blocks triggers attack first. The ordinary proximity
+roll cannot randomly turn this committed attack into fleeing, and the chase can
+start even while the player faces away. Walls, invisible-target configuration and
+normal Creative/Spectator protections are respected. Existing stalking duration,
+out-of-sight retreat removal and command timer exemption are retained.

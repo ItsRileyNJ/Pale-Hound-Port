@@ -63,12 +63,12 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
         hound.setCrawling(true);
         hound.getLookControl().setLookAt(player, 30, 30);
         double distance = hound.distanceToSqr(player);
-        if (!hound.isBackingAway() && distance < 28 * 28) {
+        if (!hound.isBackingAway() && distance < 16 * 16) {
             hound.setBackingAway(true);
             backstep.reset();
             repathDelay = 0;
             hound.getNavigation().stop();
-        } else if (hound.isBackingAway() && distance >= 36 * 36) {
+        } else if (hound.isBackingAway() && distance >= 20 * 20) {
             hound.setBackingAway(false);
             hound.getNavigation().stop();
             repathDelay = 0;

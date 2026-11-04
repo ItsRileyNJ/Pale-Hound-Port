@@ -502,3 +502,34 @@ live coordinates without a model, returns it to restore private glow, then check
 fixed expiry and actual removal. Animation checks verify running-speed response and
 short flee entry while retaining the slower posture blends. OpenAL uses a virtual
 null output; physical listening remains for user testing.
+
+
+## Follow-up: close approaches can provoke surface attacks (1.10.10)
+
+A non-retreating surface stalker checks for a visible eligible player at or inside
+12 blocks before any gaze reaction or passive-state cleanup. It atomically ends
+stalking, clears backoff/flee flags and routes, selects CHASE and commits to that
+player. A target UUID permits the chase to start without player eye contact and
+keeps ordinary target selection from rerolling this commitment into random fleeing.
+Changing/clearing the target clears that commitment. Existing chase leave timing,
+attack reach/damage, allowed target policy and full-retreat attack suppression remain.
+Ordinary Creative/Spectator players and players behind walls cannot trigger it;
+explicit command-recipient targeting remains supported.
+
+Slow backoff now starts inside 16 blocks and ends at 20, replacing 28/36. Long-range
+eye contact no longer triggers surface fleeing. After the existing arrival grace,
+a direct gaze inside 14 blocks begins a 20-tick reaction that continues only while
+gaze is maintained within 16 blocks. A close approach into 12 blocks interrupts
+that reaction in favor of attacking. Thus a walking/rushing player has an actual
+chance to provoke combat before the Hound commits to running. Timer expiry and
+other encounter-ending conditions still start the normal out-of-sight retreat.
+
+All 45 dedicated-server GameTests and ten resource/config checks pass. New tests
+cover the exact 12-block boundary, attack priority during the reaction pause, chase
+startup against a player looking away, actual physical pursuit and melee damage,
+protection/line-of-sight checks and a nearby intruder taking priority over the
+watched player. Existing tests verify distant observation, the one-second reaction,
+backward movement, straight escape, despawn/quarter-wait behavior and command timer
+exemption under the new distances. The physical fake player explicitly disables its
+permanent test-only spawn protection. No wire or asset formats changed; protocol 5
+and the previously verified audio/highlight/animation behavior are retained.

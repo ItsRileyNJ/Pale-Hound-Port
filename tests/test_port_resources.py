@@ -158,6 +158,7 @@ class PortResources(unittest.TestCase):
                 source = (ROOT / 'src/main/java/de/cadentem/pale_hound/entities/goals' / filename).read_text()
                 body = source[source.index('public '):]
                 body = re.sub(r'this\.(?:paleHound|caveDweller)\.isValidEncounterTarget\(', 'Utils.isValidTarget(', body)
+                body = body.replace('!this.paleHound.targetIsFacingMe && !this.paleHound.isSurfaceStalkAttack()', '!this.paleHound.targetIsFacingMe')
                 body = body.replace('maxUpStep()', 'getStepHeight()')
                 body = body.replace('Utils.presenceTicks(', 'Utils.secondsToTicks(')
                 body = body.replace('this.paleHound.setCrawling(false);', 'this.paleHound.getEntityData().set(PaleHoundEntity.CRAWLING_ACCESSOR, false);')

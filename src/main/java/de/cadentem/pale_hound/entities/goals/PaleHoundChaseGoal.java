@@ -36,7 +36,7 @@ public class PaleHoundChaseGoal extends Goal {
          return false;
       } else if (this.paleHound.currentRoll != Roll.CHASE) {
          return false;
-      } else if (!this.paleHound.targetIsFacingMe) {
+      } else if (!this.paleHound.targetIsFacingMe && !this.paleHound.isSurfaceStalkAttack()) {
          return false;
       } else {
          long ticks = this.paleHound.level().getGameTime();

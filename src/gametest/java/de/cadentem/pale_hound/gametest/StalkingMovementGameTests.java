@@ -47,7 +47,7 @@ public final class StalkingMovementGameTests {
     public static void closePlayerGetsBackwardCrawlWithoutTurningOrDespawn(GameTestHelper helper) {
         var hound = hound(helper, 32, 32);
         Vec3 start = hound.position();
-        var player = player(helper, start.add(12, 0, 0));
+        var player = player(helper, start.add(15.5, 0, 0));
         hound.setYRot(-90); hound.setYBodyRot(-90); hound.setYHeadRot(-90);
         lookAt(player, hound);
         helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start close stalking");
@@ -72,11 +72,11 @@ public final class StalkingMovementGameTests {
     public static void diagonalEscapeDoesNotAlternateCardinalHeadings(GameTestHelper helper) {
         var hound = hound(helper, 48, 48);
         Vec3 start = hound.position();
-        var player = player(helper, start.add(-28, 0, -28));
+        var player = player(helper, start.add(-9.5, 0, -9.5));
         hound.setNoAi(true);
         helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start diagonal stalking");
         for (int i = 0; i < 160; ++i) hound.tick();
-        lookAt(player, hound); hound.tick();
+        lookAt(player, hound); for (int i = 0; i < 20; ++i) hound.tick();
         helper.assertTrue(hound.isSurfaceStalkRetreating(), "Gaze did not trigger escape after arrival grace");
         hound.setNoAi(false);
         float[] lastYaw = {hound.getYRot()}; int[] elapsed = {0};
@@ -129,7 +129,13 @@ public final class StalkingMovementGameTests {
                 "Watching should hold position and face the player");
             lookAt(player, hound);
             for (int i = 0; i < 159; ++i) { hound.tick(); helper.assertTrue(!hound.isSurfaceStalkRetreating(), "Arrival gaze escaped immediately"); }
-            hound.tick(); helper.assertTrue(hound.isSurfaceStalkRetreating(), "Distant gaze should still cause escape after grace");
+            for (int i = 0; i < 80; ++i) hound.tick();
+            helper.assertTrue(!hound.isSurfaceStalkRetreating(), "Distant gaze must allow the player to approach");
+            player.setPos(hound.position().add(13, 0, 0)); lookAt(player, hound);
+            for (int i = 0; i < 19; ++i) {
+                hound.tick(); helper.assertTrue(!hound.isSurfaceStalkRetreating(), "Close gaze must leave time to cross into attack range");
+            }
+            hound.tick(); helper.assertTrue(hound.isSurfaceStalkRetreating(), "Close gaze should run after the reaction pause");
         } finally { clean(helper, hound, player); }
         helper.succeed();
     }
@@ -147,4 +153,79 @@ public final class StalkingMovementGameTests {
         } finally { hound.discard(); }
         helper.succeed();
     }
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "stalking_motion")
+    public static void twelveBlockAttackOverridesPendingGazeEscape(GameTestHelper helper) {
+        var hound = hound(helper, 64, 64); hound.setNoAi(true);
+        var player = player(helper, hound.position().add(40, 0, 0));
+        try {
+            helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start stalking");
+            for (int i = 0; i < 160; ++i) hound.tick();
+            player.setPos(hound.position().add(13, 0, 0)); lookAt(player, hound);
+            for (int i = 0; i < 10; ++i) hound.tick();
+            helper.assertTrue(hound.isSurfaceStalking() && !hound.isSurfaceStalkRetreating(), "No approach window before escape");
+            player.setPos(hound.position().add(12, 0, 0)); player.setYRot(-90); player.setYHeadRot(-90); player.setXRot(0);
+            hound.tick();
+            helper.assertTrue(!hound.isSurfaceStalking() && hound.isSurfaceStalkAttack(), "Exact 12-block approach did not commit to attacking");
+            helper.assertTrue(hound.getTarget() == player && hound.isAggressive() && !hound.isFleeing && !hound.isBackingAway(), "Attack transition retained passive or fleeing state");
+            helper.assertTrue(hound.currentRoll == de.cadentem.pale_hound.entities.goals.Roll.CHASE && hound.canAttack(player), "Attack guard still suppresses the committed chase");
+            helper.assertTrue(!hound.targetIsFacingMe, "Fixture should face away");
+            var chase = new de.cadentem.pale_hound.entities.goals.PaleHoundChaseGoal(hound, true);
+            helper.assertTrue(chase.canUse(), "Committed attack incorrectly requires the player to look at him");
+        } finally { clean(helper, hound, player); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, timeoutTicks = 170, batch = "stalking_motion")
+    public static void crowdedSurfaceStalkerPhysicallyChasesAndHits(GameTestHelper helper) throws ReflectiveOperationException {
+        var hound = hound(helper, 64, 64);
+        var player = new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "CrowdedStalkTest")) {
+            @Override public boolean isInvulnerableTo(net.minecraft.world.damagesource.DamageSource damage) { return false; }
+        };
+        player.setGameMode(GameType.SURVIVAL); player.setPos(hound.position().add(8, 0, 0));
+        player.setYRot(-90); player.setYHeadRot(-90);
+        player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200);
+        player.setHealth(200);
+        // FakePlayer never ticks down the normal login protection, unlike a real player.
+        var protection = net.minecraft.server.level.ServerPlayer.class.getDeclaredField("spawnInvulnerableTime");
+        protection.setAccessible(true); protection.setInt(player, 0);
+        helper.getLevel().addNewPlayer(player);
+        helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start physical crowding fixture");
+        helper.onEachTick(() -> {
+            if (hound.isRemoved() || !hound.isSurfaceStalkAttack()) return;
+            helper.assertTrue(hound.currentRoll == de.cadentem.pale_hound.entities.goals.Roll.CHASE && !hound.isFleeing,
+                "Proximity targeting rerolled a committed stalk attack into fleeing");
+        });
+        helper.runAfterDelay(130, () -> {
+            try {
+                helper.assertTrue(!hound.isSurfaceStalking() && hound.getTarget() == player, "Stalker did not retain the close player target");
+                helper.assertTrue(player.getHealth() < 200, "Close approach changed flags but never produced a real melee hit: position=" + hound.position());
+            } finally { clean(helper, hound, player); }
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "stalking_motion")
+    public static void surfaceCrowdingIgnoresProtectedPlayersAndBlockedSight(GameTestHelper helper) {
+        var hound = hound(helper, 64, 64); hound.setNoAi(true);
+        var watched = player(helper, hound.position().add(40, 0, 0));
+        var intruder = player(helper, hound.position().add(8, 0, 0));
+        try {
+            helper.assertTrue(hound.tryStartSurfaceStalking(watched), "Could not start watching");
+            intruder.setGameMode(GameType.CREATIVE); hound.tick();
+            helper.assertTrue(hound.isSurfaceStalking(), "Ordinary Creative player triggered an attack");
+            intruder.setGameMode(GameType.SPECTATOR); hound.tick();
+            helper.assertTrue(hound.isSurfaceStalking(), "Spectator triggered an attack");
+            intruder.setGameMode(GameType.SURVIVAL);
+            for (int y = 2; y <= 5; ++y) helper.setBlock(66, y, 64, Blocks.STONE);
+            hound.tick(); helper.assertTrue(hound.isSurfaceStalking(), "Close player behind a solid wall triggered an attack");
+            for (int y = 2; y <= 5; ++y) helper.setBlock(66, y, 64, Blocks.AIR);
+            hound.tick();
+            helper.assertTrue(hound.isSurfaceStalkAttack() && hound.getTarget() == intruder, "Nearby eligible intruder did not take priority over distant watched player");
+        } finally {
+            clean(helper, hound, watched);
+            helper.getLevel().removePlayerImmediately(intruder, Entity.RemovalReason.DISCARDED);
+        }
+        helper.succeed();
+    }
+
 }
