@@ -20,7 +20,7 @@ public class HoundAudioController {
     public HoundAudioController(PaleHoundEntity hound) { this.hound = hound; }
 
     public void playerDetected(Player player) {
-        if (hound.level().isClientSide() || hound.isSilent() || !Utils.isValidTarget(player)) return;
+        if (hound.level().isClientSide() || hound.isSilent() || !hound.isValidEncounterTarget(player)) return;
         if (player.getUUID().equals(lastNoticed) && hound.tickCount < nextNoticeTick) return;
         stopStalking();
         lastNoticed = player.getUUID();
@@ -33,7 +33,7 @@ public class HoundAudioController {
         return hound.isAlive() && !hound.isSilent() && !hound.isInvisible() && !hound.isAggressive() && !hound.isFleeing
             && !hound.isSurfaceStalking() && !Utils.isOnSurface(hound)
             && (hound.currentRoll == Roll.STARE || hound.currentRoll == Roll.STROLL)
-            && hound.getTarget() instanceof Player player && Utils.isValidTarget(player);
+            && hound.getTarget() instanceof Player player && hound.isValidEncounterTarget(player);
     }
 
     public void tick() {

@@ -335,3 +335,35 @@ All 30 server GameTests and nine resource/config checks pass. New coverage verif
 the new default in an existing config, doubled surface readiness boundaries, unchanged
 cave/noise timing, composition with the original multiplier, quarter-wait scaling,
 and restoring previous surface pacing with multiplier 1.0.
+
+## Follow-up: forced encounters, longer stalking and directed retreat (1.10.6)
+
+- Added OP-only `/pale_hound encounter [player]`, including console use with an explicit
+  player. It finds a nearby clear spawn point, prefers the player's rear, bypasses
+  normal eligibility/cap/chance/timer gates, and finalizes the mob with the triggered
+  spawn reason. The selected Creative/Spectator player is an explicit per-Hound target
+  exception; global natural-target policy and native player invulnerability remain.
+- A persistent command-recipient UUID marks timer-exempt encounters. Natural spawn
+  counting excludes them, and the spotted-retreat reset is suppressed for them.
+  Creation and removal do not reset spawn/noise timers.
+- Added `surface_stalk_duration_multiplier = 2.0` under Behaviour, composing with the
+  presence multiplier to give 180–270 seconds by default. Forced retreats stay 60 ticks.
+- Added a stable retreat planner with safe completed routes, outward endpoint progress
+  and a limit on returning close to the threat. The surface goal keeps an active
+  escape route instead of rerolling random headings every 20 ticks. Normal fleeing
+  uses the same planner and movement/look flags, resets its state when restarted,
+  and releases movement cleanly when stopped.
+- Moved the vanilla melee fallback from target selection to the movement goal selector
+  and restricted it to chase. Chase continuation yields to flee; final attack guards
+  also reject flee states. Running speed now stays active during normal fleeing.
+
+All 34 server GameTests and nine resource checks pass. The command test disables
+natural chance/caps/surface spawning/dimension eligibility and invokes the real
+dispatcher for a Creative operator. It checks permission denial, safe placement, the
+player argument, AI startup, NBT timer-exemption persistence, and unchanged timers
+after command creation and spotted retreat/despawn. Physical tests verify surface
+and normal fleeing gain distance on stable headings without melee interference;
+a wall test verifies flanking without returning toward the threat. Existing lifecycle
+coverage verifies the longer stalking bounds and finite three-second retreat.
+The intentionally rewritten original flee body is now covered by runtime checks
+rather than its old byte-normalized source hash.

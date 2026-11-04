@@ -21,6 +21,10 @@ public final class PaleHoundTargets {
 
     private PaleHoundTargets() {}
 
+    public static boolean isAllowed(Entity entity, de.cadentem.pale_hound.entities.PaleHoundEntity actor) {
+        return actor.isCommandEncounterTarget(entity) || isAllowed(entity);
+    }
+
     public static boolean isAllowed(Entity entity) {
         if (!Utils.isValidTarget(entity)) return false;
         return entity instanceof Player || entity instanceof Sheep || entity instanceof Villager

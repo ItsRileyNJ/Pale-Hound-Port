@@ -165,8 +165,8 @@ public final class PortGameTests {
             // Keep the test synchronous: advance the entity through the whole lifecycle.
             hound.setNoAi(true);
             int ticks = 0;
-            int minimum = de.cadentem.pale_hound.util.Utils.scalePresenceTicks(600);
-            int maximum = de.cadentem.pale_hound.util.Utils.scalePresenceTicks(900);
+            int minimum = de.cadentem.pale_hound.util.Utils.scalePresenceTicks(600) * ServerConfig.SURFACE_STALK_DURATION_MULTIPLIER.get().intValue();
+            int maximum = de.cadentem.pale_hound.util.Utils.scalePresenceTicks(900) * ServerConfig.SURFACE_STALK_DURATION_MULTIPLIER.get().intValue();
             while (!hound.isSurfaceStalkRetreating() && ticks++ < maximum + 1) hound.tick();
             helper.assertTrue(ticks + 2 >= minimum && ticks + 2 <= maximum, "Stalking duration should respect the presence multiplier");
             helper.assertTrue(hound.isSurfaceStalkRetreating() && hound.isFleeing, "Stalking must transition to retreat");
@@ -941,6 +941,171 @@ public final class PortGameTests {
             }
             helper.succeed();
         });
+    }
+
+    @GameTest(template = "encounter_test", skyAccess = true, setupTicks = 30)
+    public static void commandEncounterBypassesGatesAndPreservesTimers(GameTestHelper helper) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var level = helper.getLevel();
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "ForcedEncounterTest"));
+        player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
+        player.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(32, 2, 32))));
+        level.addNewPlayer(player);
+        var dispatcher = level.getServer().getCommands().getDispatcher();
+        var source = player.createCommandSourceStack().withPermission(2);
+        String dimension = level.dimension().location().toString();
+        var spawnBefore = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn");
+        var noiseBefore = de.cadentem.pale_hound.PaleHound.getTimer(dimension, "noise");
+        double chance = ServerConfig.SPAWN_CHANCE_PER_TICK.get();
+        int maximum = ServerConfig.MAXIMUM_AMOUNT.get();
+        boolean surface = ServerConfig.ALLOW_SURFACE_SPAWN.get();
+        var biomes = ServerConfig.SURFACE_BIOMES.get();
+        var dimensions = ServerConfig.DIMENSION_WHITELIST.get();
+        PaleHoundEntity restored = null;
+        try {
+            boolean denied = false;
+            try { dispatcher.execute("pale_hound encounter", source.withPermission(0)); }
+            catch (com.mojang.brigadier.exceptions.CommandSyntaxException expected) { denied = true; }
+            helper.assertTrue(denied, "Creative alone must not grant the force-encounter command");
+            ServerConfig.SPAWN_CHANCE_PER_TICK.set(0.0);
+            ServerConfig.MAXIMUM_AMOUNT.set(0);
+            ServerConfig.ALLOW_SURFACE_SPAWN.set(false);
+            ServerConfig.SURFACE_BIOMES.set(java.util.List.of("minecraft:plains"));
+            ServerConfig.DIMENSION_WHITELIST.set(java.util.List.of());
+            helper.assertTrue(dispatcher.execute("pale_hound encounter", source) == 1, "Forced encounter failed with natural spawning disabled");
+            var hounds = level.getEntities(ModEntityTypes.PALE_HOUND.get(), h -> h.isCommandEncounterTarget(player));
+            helper.assertTrue(hounds.size() == 1, "Command must create exactly one encounter");
+            var hound = hounds.getFirst();
+            hound.setNoAi(true);
+            helper.assertTrue(hound.isCommandEncounter() && hound.hasSpawned && !hound.isInvisible(), "Encounter did not initialize natural behavior");
+            helper.assertTrue(hound.isSurfaceStalking() || hound.getTarget() == player, "Creative command recipient was ignored");
+            helper.assertTrue(level.noCollision(hound, hound.getBoundingBox().deflate(0.00001)), "Forced encounter spawned inside a wall");
+            var tag = new net.minecraft.nbt.CompoundTag();
+            hound.addAdditionalSaveData(tag);
+            restored = ModEntityTypes.PALE_HOUND.get().create(level);
+            restored.readAdditionalSaveData(tag);
+            helper.assertTrue(restored.isCommandEncounter() && restored.isCommandEncounterTarget(player), "Timer exemption did not survive NBT reload");
+            helper.assertTrue(spawnBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn"))
+                && noiseBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "noise")), "Command reset a scheduled timer");
+            if (!hound.isSurfaceStalking()) {
+                hound.setTarget(null);
+                hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.STROLL;
+                helper.assertTrue(hound.tryStartSurfaceStalking(player), "Forced Creative target should be valid for stalking");
+            }
+            Vec3 look = hound.getEyePosition().subtract(player.getEyePosition());
+            player.setYRot((float)Math.toDegrees(Math.atan2(-look.x, look.z)));
+            player.setYHeadRot(player.getYRot());
+            player.setXRot((float)-Math.toDegrees(Math.atan2(look.y, Math.hypot(look.x, look.z))));
+            hound.tick();
+            helper.assertTrue(hound.isSurfaceStalkRetreating(), "Command encounter should react naturally to a Creative player's gaze");
+            for (int i = 0; i < 60; ++i) hound.tick();
+            helper.assertTrue(hound.isRemoved(), "Command encounter should still finish its retreat and despawn");
+            helper.assertTrue(spawnBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "spawn"))
+                && noiseBefore.equals(de.cadentem.pale_hound.PaleHound.getTimer(dimension, "noise")), "Spotted command encounter changed scheduled timers");
+            helper.assertTrue(dispatcher.execute("pale_hound encounter @s", source) == 1, "Explicit player argument failed");
+        } finally {
+            for (var hound : level.getEntities(ModEntityTypes.PALE_HOUND.get(), h -> h.isCommandEncounterTarget(player))) hound.discard();
+            if (restored != null) restored.discard();
+            level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+            ServerConfig.SPAWN_CHANCE_PER_TICK.set(chance);
+            ServerConfig.MAXIMUM_AMOUNT.set(maximum);
+            ServerConfig.ALLOW_SURFACE_SPAWN.set(surface);
+            ServerConfig.SURFACE_BIOMES.set(biomes);
+            ServerConfig.DIMENSION_WHITELIST.set(dimensions);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "encounter_test", skyAccess = true, setupTicks = 30, timeoutTicks = 100)
+    public static void surfaceRetreatRunsAwayOnOneRoute(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var hound = ModEntityTypes.PALE_HOUND.get().create(level);
+        Vec3 start = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(32, 2, 32)));
+        hound.setPos(start);
+        level.addFreshEntity(hound);
+        var player = new net.neoforged.neoforge.common.util.FakePlayer(level,
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "RetreatTest"));
+        player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+        player.setPos(start.add(-20, 0, 0));
+        level.addNewPlayer(player);
+        helper.assertTrue(hound.tryStartSurfaceStalking(player), "Could not start physical retreat fixture: houndSurface=" + de.cadentem.pale_hound.util.Utils.isOnSurface(hound) + " playerSurface=" + de.cadentem.pale_hound.util.Utils.isOnSurface(player));
+        Vec3 look = hound.getEyePosition().subtract(player.getEyePosition());
+        player.setYRot((float)Math.toDegrees(Math.atan2(-look.x, look.z)));
+        player.setYHeadRot(player.getYRot());
+        player.setXRot((float)-Math.toDegrees(Math.atan2(look.y, Math.hypot(look.x, look.z))));
+        var firstRoute = new java.util.concurrent.atomic.AtomicReference<net.minecraft.world.level.pathfinder.Path>();
+        helper.onEachTick(() -> {
+            if (hound.isRemoved()) return;
+            var route = hound.getNavigation().getPath();
+            if (route != null && !route.isDone() && hound.isSurfaceStalkRetreating()) {
+                firstRoute.compareAndSet(null, route);
+                helper.assertTrue(firstRoute.get() == route, "Working retreat route was replaced and could cause circling");
+            }
+            helper.assertTrue(Math.abs(hound.getZ() - start.z) < 1, "Retreat circled sideways on open ground");
+            helper.assertTrue(!hound.canAttack(player), "Retreating Hound should not attack");
+        });
+        helper.runAfterDelay(45, () -> {
+            try {
+                helper.assertTrue(!hound.isRemoved() && hound.isSurfaceStalkRetreating(), "Retreat did not remain active");
+                helper.assertTrue(hound.getX() > start.x + 4, "Hound did not physically run away from the player");
+                helper.assertTrue(firstRoute.get() != null, "No retreat route was started");
+            } finally { hound.discard(); level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED); }
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "encounter_test", skyAccess = true, setupTicks = 30, timeoutTicks = 120)
+    public static void normalFleeDoesNotCompeteWithMelee(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var hound = ModEntityTypes.PALE_HOUND.get().create(level);
+        Vec3 start = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(32, 2, 32)));
+        hound.setPos(start);
+        level.addFreshEntity(hound);
+        var sheep = net.minecraft.world.entity.EntityType.SHEEP.create(level);
+        sheep.setNoAi(true);
+        sheep.setPos(start.add(-12, 0, 0));
+        level.addFreshEntity(sheep);
+        hound.setTarget(sheep);
+        hound.currentRoll = de.cadentem.pale_hound.entities.goals.Roll.FLEE;
+        helper.assertTrue(!new de.cadentem.pale_hound.entities.goals.PaleHoundChaseGoal(hound, true).canContinueToUse(),
+            "Chase movement must yield when the roll switches to flee");
+        float health = sheep.getHealth();
+        helper.onEachTick(() -> {
+            if (!hound.isRemoved()) helper.assertTrue(!hound.canAttack(sheep) && !hound.doHurtTarget(sheep), "Fleeing Hound continued melee attacks");
+        });
+        helper.runAfterDelay(50, () -> {
+            try {
+                helper.assertTrue(!hound.isRemoved() && hound.isFleeing, "Normal flee should be active after its initial stare");
+                helper.assertTrue(hound.getX() > start.x + 3 && Math.abs(hound.getZ() - start.z) < 1, "Normal flee did not move away on a stable heading: position=" + hound.position() + " start=" + start + " path=" + hound.getNavigation().getPath() + " crawl=" + hound.isCrawling() + " speed=" + hound.getSpeed());
+                helper.assertTrue(sheep.getHealth() == health, "Flee damaged its previous target");
+            } finally { hound.discard(); sheep.discard(); }
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "encounter_test", skyAccess = true, setupTicks = 30)
+    public static void retreatFlanksWallWithoutReturningToThreat(GameTestHelper helper) {
+        var hound = ModEntityTypes.PALE_HOUND.get().create(helper.getLevel());
+        hound.setNoAi(true);
+        Vec3 start = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(32, 2, 32)));
+        hound.setPos(start);
+        helper.getLevel().addFreshEntity(hound);
+        for (int y = 2; y <= 6; ++y) for (int z = 29; z <= 35; ++z)
+            helper.setBlock(36, y, z, net.minecraft.world.level.block.Blocks.STONE);
+        Vec3 threat = start.add(-20, 0, 0);
+        try {
+            var path = new de.cadentem.pale_hound.entities.navigation.HoundRetreat().findPath(hound, threat);
+            helper.assertTrue(path != null && path.canReach(), "Escape planner could not flank a simple wall");
+            boolean flanked = false;
+            for (int i = 0; i < path.getNodeCount(); ++i) {
+                Vec3 node = Vec3.atBottomCenterOf(path.getNode(i).asBlockPos());
+                if (Math.abs(node.z - start.z) > 3) flanked = true;
+                helper.assertTrue(Math.hypot(node.x - threat.x, node.z - threat.z) >= 19,
+                    "Escape route looped back toward the threat");
+            }
+            helper.assertTrue(flanked && path.getTarget().getX() >= start.x + 4, "Escape route did not go around the wall and away");
+        } finally { hound.discard(); }
+        helper.succeed();
     }
 
     @GameTest(template = "port_test")

@@ -62,6 +62,8 @@ public class Utils {
    }
 
    public static LivingEntity getValidTarget(@NotNull PaleHoundEntity caveDweller) {
+      var commanded = caveDweller.getCommandEncounterPlayer();
+      if (commanded != null && caveDweller.isValidEncounterTarget(commanded) && caveDweller.distanceToSqr(commanded) <= 128 * 128) return commanded;
       return caveDweller.level()
          .getNearestPlayer(caveDweller.position().x, caveDweller.position().y, caveDweller.position().z, 128.0, Utils::isValidTarget);
    }

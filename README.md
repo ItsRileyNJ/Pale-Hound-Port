@@ -22,7 +22,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.5-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.6-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -38,7 +38,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for thirty in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for thirty-four in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -77,7 +77,7 @@ begin stalking a player within 64 blocks before normal attack targeting runs.
 If he remains idle, he retries at 90% every five seconds. This does not interrupt a chase or flee.
 He crawls after the player, aims to stay 16–24 blocks away, and backs off when approached.
 All attacks are blocked during stalking and retreat, including at melee distance.
-After 90–135 seconds by default he runs away, then despawns after three seconds. Losing the player
+After 180–270 seconds by default he runs away, then despawns after three seconds. Losing the player
 or leaving the surface starts the retreat early. His normal lifetime countdown pauses
 during this sequence so it can finish; removal is controlled by the server.
 
@@ -113,7 +113,7 @@ with your own copy, use `./gradlew runGameTestServer -PmercenariesJar=/absolute/
 
 `[Timers.Leave].presence_time_multiplier` defaults to `3.0`. With the original base
 settings this gives a 15-minute normal lifetime, 90-second chase leave timer, and
-90–135-second stalking duration. Eye-contact retreats and their three-second despawn
+180–270-second stalking duration with the additional default surface-stalk multiplier. Eye-contact retreats and their three-second despawn
 still take priority. Normal distance-based despawning and chunk loading rules apply.
 Set the multiplier to `1.0` to restore the previous durations. It scales saved base
 settings without rewriting them; ordinary lifetime and chase timers are set when a
@@ -237,3 +237,33 @@ with the surface factor applying to that shortened wait too.
 including the surface factors for the timer's selected player, plus seconds remaining.
 The noise query also includes its existing surface factor. The dimension still shares
 one timer, and eligibility/valid spawn locations are still required after it is ready.
+
+## Start an encounter and improved retreat (1.10.6)
+
+OPs can use `/pale_hound encounter` to start an encounter for themselves, or
+`/pale_hound encounter <player>` for one player. The console must specify a player.
+The command searches loaded, collision-free ground nearby, preferring a position
+behind the player. Clear nearby air is a fallback for flying players; if every
+location is obstructed it reports that a safer area is needed.
+
+This bypasses the scheduled timer, chance, daylight, biome/dimension eligibility
+and natural entity cap. It starts the normal encounter AI, including the surface
+stalking preference and existing cave behavior. The selected player can participate
+in Creative/Spectator; other Creative/Spectator players retain their normal protection,
+and Minecraft's native invulnerability is unchanged.
+
+Command-created Hounds are tagged in saved entity data and excluded from the natural
+spawn cap. Neither their creation nor their spotted retreat/despawn resets the
+scheduled spawn/noise timers or applies the natural spotted-respawn bonus. The
+ordinary timers continue normally, so independent timed encounters can still occur.
+
+`[Behaviour].surface_stalk_duration_multiplier = 2.0` doubles surface stalking to
+180–270 seconds with the default presence multiplier, before its three-second retreat.
+It does not extend cave encounters or forced retreats. Existing gaze/target-loss
+conditions can still end stalking early.
+
+Retreat keeps a stable escape heading and follows a working route to completion,
+rather than choosing random destinations every second. Routes must finish farther
+from the threat and cannot loop back close to it. Alternate routes can flank walls.
+The normal flee goal also uses this planner, claims movement/look control, and no
+longer competes with chase/melee movement. Retreats cannot perform melee attacks.

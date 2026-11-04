@@ -13,6 +13,7 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
     private final PaleHoundEntity hound;
     private int repathDelay;
     private boolean wasRetreating;
+    private final de.cadentem.pale_hound.entities.navigation.HoundRetreat escape = new de.cadentem.pale_hound.entities.navigation.HoundRetreat();
 
     public PaleHoundSurfaceStalkGoal(PaleHoundEntity hound) {
         this.hound = hound;
@@ -37,13 +38,29 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
         boolean retreating = hound.isSurfaceStalkRetreating();
         if (retreating && !wasRetreating) {
             repathDelay = 0;
+            escape.reset();
+            hound.getNavigation().stop();
             hound.playFleeSound();
         }
         wasRetreating = retreating;
-        if (!retreating) hound.setCrawling(true);
-        if (!retreating) hound.getLookControl().setLookAt(player, 30, 30);
+        if (retreating) {
+            var navigation = hound.getNavigation();
+            if (navigation.isDone() && --repathDelay <= 0) {
+                repathDelay = 10;
+                var route = escape.findPath(hound, player.position());
+                if (route != null) navigation.moveTo(route, 1.2);
+            }
+            var route = navigation.getPath();
+            if (route != null && !route.isDone()) {
+                var next = route.getNextEntityPos(hound);
+                hound.getLookControl().setLookAt(next.x, next.y + hound.getEyeHeight(), next.z);
+            }
+            return;
+        }
+        hound.setCrawling(true);
+        hound.getLookControl().setLookAt(player, 30, 30);
         double distance = hound.distanceToSqr(player);
-        if (!retreating && distance >= 16 * 16 && distance <= 24 * 24) {
+        if (distance >= 16 * 16 && distance <= 24 * 24) {
             hound.getNavigation().stop();
             repathDelay = 0;
             return;
@@ -53,12 +70,12 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
         Vec3 away = hound.position().subtract(player.position()).multiply(1, 0, 1).normalize();
         if (away.lengthSqr() < 0.001) away = new Vec3(1, 0, 0);
         Vec3 fallback = hound.position().add(away.scale(12));
-        boolean backingOff = retreating || distance < 16 * 16;
+        boolean backingOff = distance < 16 * 16;
         Vec3 destination = backingOff
             ? DefaultRandomPos.getPosAway(hound, 16, 7, player.position())
             : player.position().add(away.scale(20));
         if (destination == null) destination = fallback;
-        double speed = retreating ? 1.2 : 0.35;
+        double speed = 0.35;
         var candidates = new ArrayList<Vec3>();
         candidates.add(destination);
         // Try flanking routes along the same standoff ring rather than pressing into one obstacle.
@@ -73,8 +90,6 @@ public final class PaleHoundSurfaceStalkGoal extends Goal {
             destination = fallback;
             hound.getNavigation().moveTo(destination.x, destination.y, destination.z, speed);
         }
-        if (retreating) hound.getLookControl().setLookAt(destination.x, destination.y, destination.z);
-
     }
 
     @Override public void stop() {

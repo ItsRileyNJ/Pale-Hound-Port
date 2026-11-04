@@ -19,7 +19,7 @@ public class PaleHoundTargetSeesMeGoal extends NearestAttackableTargetGoal<Playe
          return false;
       } else {
          this.target = Utils.getValidTarget(this.caveDweller);
-         return !Utils.isValidTarget(this.target) ? false : this.caveDweller.isLookingAtMe(this.target, true);
+         return !this.caveDweller.isValidEncounterTarget(this.target) ? false : this.caveDweller.isLookingAtMe(this.target, true);
       }
    }
 
@@ -38,7 +38,7 @@ public class PaleHoundTargetSeesMeGoal extends NearestAttackableTargetGoal<Playe
    }
 
    public boolean canContinueToUse() {
-      return Utils.isValidTarget(this.target);
+      return this.caveDweller.isValidEncounterTarget(this.target);
    }
 
    public void tick() {

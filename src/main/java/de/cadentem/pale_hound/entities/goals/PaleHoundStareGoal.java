@@ -24,7 +24,7 @@ public class PaleHoundStareGoal extends Goal {
       if (this.paleHound.isInvisible()) {
          return false;
       } else {
-         return !Utils.isValidTarget(this.paleHound.getTarget()) ? false : this.paleHound.currentRoll == Roll.STARE;
+         return !this.paleHound.isValidEncounterTarget(this.paleHound.getTarget()) ? false : this.paleHound.currentRoll == Roll.STARE;
       }
    }
 
@@ -38,7 +38,7 @@ public class PaleHoundStareGoal extends Goal {
          this.paleHound.currentRoll = Roll.CHASE;
          return super.canContinueToUse();
       } else {
-         return !Utils.isValidTarget(target) ? false : this.paleHound.currentRoll == Roll.STARE;
+         return !this.paleHound.isValidEncounterTarget(target) ? false : this.paleHound.currentRoll == Roll.STARE;
       }
    }
 

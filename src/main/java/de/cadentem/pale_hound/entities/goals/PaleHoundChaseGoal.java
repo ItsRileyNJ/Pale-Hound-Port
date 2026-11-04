@@ -45,7 +45,7 @@ public class PaleHoundChaseGoal extends Goal {
          } else {
             this.lastGameTimeCheck = ticks;
             LivingEntity target = this.paleHound.getTarget();
-            if (!Utils.isValidTarget(target)) {
+            if (!this.paleHound.isValidEncounterTarget(target)) {
                return false;
             } else {
                Path path = this.paleHound.getNavigation().createPath(target, 0);
@@ -66,7 +66,7 @@ public class PaleHoundChaseGoal extends Goal {
    }
 
    public boolean canContinueToUse() {
-      if (this.paleHound.isSurfaceStalking()) {
+      if (this.paleHound.isSurfaceStalking() || this.paleHound.currentRoll != Roll.CHASE || this.paleHound.isFleeing) {
          return false;
       }
       LivingEntity target = this.paleHound.getTarget();
@@ -81,7 +81,7 @@ public class PaleHoundChaseGoal extends Goal {
          }
 
          return super.canContinueToUse();
-      } else if (!Utils.isValidTarget(target)) {
+      } else if (!this.paleHound.isValidEncounterTarget(target)) {
          if (target == null && this.previousTarget instanceof Player) {
             this.paleHound.disappear();
          }
@@ -100,7 +100,7 @@ public class PaleHoundChaseGoal extends Goal {
 
    public void stop() {
       LivingEntity target = this.paleHound.getTarget();
-      if (!Utils.isValidTarget(target)) {
+      if (!this.paleHound.isValidEncounterTarget(target)) {
          this.paleHound.setTarget(null);
       }
 
@@ -122,7 +122,7 @@ public class PaleHoundChaseGoal extends Goal {
       }
 
       LivingEntity target = this.paleHound.getTarget();
-      if (Utils.isValidTarget(target)) {
+      if (this.paleHound.isValidEncounterTarget(target)) {
          Path path = this.paleHound.getNavigation().getPath();
          this.fixPath(path);
          boolean targetMoved = path != null && path.getEndNode() != null && path.getEndNode().distanceTo(target.blockPosition()) > 2.0F;

@@ -122,7 +122,7 @@ public class PaleHound {
             Iterable<Entity> entities = level.getAllEntities();
             AtomicInteger paleHoundCount = new AtomicInteger();
             entities.forEach(entity -> {
-               if (entity instanceof PaleHoundEntity) {
+               if (entity instanceof PaleHoundEntity hound && !hound.isCommandEncounter()) {
                   paleHoundCount.getAndAdd(1);
                }
             });

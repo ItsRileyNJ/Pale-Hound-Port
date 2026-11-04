@@ -28,7 +28,7 @@ public final class HoundRoutes {
     }
 
     @Nullable
-    private static BlockPos findGround(PaleHoundEntity hound, Vec3 point) {
+    public static BlockPos findGround(PaleHoundEntity hound, Vec3 point) {
         BlockPos base = BlockPos.containing(point);
         if (!hound.level().hasChunkAt(base)) return null;
         for (int dy = 2; dy >= -hound.getMaxFallDistance(); --dy) {

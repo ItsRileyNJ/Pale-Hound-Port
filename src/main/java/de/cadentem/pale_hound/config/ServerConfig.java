@@ -17,6 +17,7 @@ public class ServerConfig {
     public static ModConfigSpec.DoubleValue SURFACE_SPAWN_TIMER_MULTIPLIER;
     public static ModConfigSpec.DoubleValue PRESENCE_TIME_MULTIPLIER;
     public static ModConfigSpec.IntValue ROAM_RADIUS;
+    public static ModConfigSpec.DoubleValue SURFACE_STALK_DURATION_MULTIPLIER;
     public static ModConfigSpec.IntValue ROAM_INTERVAL;
     public static ModConfigSpec.IntValue CAN_SPAWN_MIN;
     public static ModConfigSpec.IntValue CAN_SPAWN_MAX;
@@ -156,6 +157,7 @@ public class ServerConfig {
         BUILDER.pop();
         BUILDER.pop();
         BUILDER.push("Behaviour");
+        SURFACE_STALK_DURATION_MULTIPLIER = BUILDER.comment("Additional multiplier for surface stalking duration; 2.0 gives about 3 to 4.5 minutes with default presence settings.").defineInRange("surface_stalk_duration_multiplier", 2.0, 0.1, 10.0);
         ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);
         ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);
         SPOTTING_RANGE = BUILDER.comment("The distance in blocks at which the Pale Hound can detect whether a player is looking at it or not").defineInRange("spotting_range", 50, 0, 128);

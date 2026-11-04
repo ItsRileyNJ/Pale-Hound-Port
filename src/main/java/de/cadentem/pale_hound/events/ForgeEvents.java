@@ -90,6 +90,7 @@ public class ForgeEvents {
       LiteralArgumentBuilder<CommandSourceStack> builder = (LiteralArgumentBuilder<CommandSourceStack>)Commands.literal("pale_hound")
          .requires(HoundHighlightCommand::canUse);
       builder.then(HoundHighlightCommand.command());
+      builder.then(de.cadentem.pale_hound.commands.HoundEncounterCommand.command());
       builder.then(
          Commands.literal("fast_forward").requires(source -> source.hasPermission(2))
             .then(
