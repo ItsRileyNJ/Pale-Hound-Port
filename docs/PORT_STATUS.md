@@ -464,3 +464,41 @@ cave fixtures run separately from surface-player fixtures. Client checks compile
 three new reverse assets with GeckoLib, exercise the actual animation-state handler
 for all poses and idle stopping, and verify the 25% speed and 12-tick blend settings.
 Development fixtures and structure NBT files are excluded from the release JAR.
+
+
+## Follow-up: uninterrupted exclusive audio, live highlights and escape gait (1.10.9)
+
+The supplied channel previously stopped a stalking clip immediately upon STOP_STALKING,
+and imposed a 300-world-tick lifetime. State changes now let active clips complete;
+completion follows the audio engine, with a monotonic timeout only for playback that
+never starts. Server clock jumps therefore cannot truncate streaming clips.
+
+A client PlaySoundEvent guard includes every pale_hound-namespaced sound, including
+vanilla entity sound packets, legacy cave cues, original vocals and footsteps. Only
+one Hound sound is allowed per listener; busy requests are dropped, with no delayed
+queue or priority interruption. One-shot EntityBoundSoundInstances are detached from
+entity ticking while preserving sample resolution, volume, pitch, category and position,
+so losing the model does not stop the clip. World changes/logout still clear playback.
+
+Highlight sessions retain selected UUIDs on the server, send private positions twice
+per second, and respect the original fixed expiry, dimension and OP/Creative access.
+No chunks are loaded. The HUD lists direction, distance, coordinates and whether the
+client has the model, for the three nearest selected Hounds. Private glowing remains
+for tracked models and resumes upon re-tracking. Actual entity removal or unloading
+ends the selection and clears stale locations; losing permission, logout, dimension
+change and server shutdown also clear sessions. Payload location counts and finite
+coordinates are validated; the protocol is now version 5.
+
+Fleeing uses a three-tick entry transition and horizontal-speed-driven 1x–3x running playback (up to 6x for the longer crawl loop),
+rather than the 0.75 normal multiplier. It also wins over stale aggressive flags.
+Standing/crawl blends remain twelve ticks, with the heavy normal playback preserved.
+
+Validation includes all 42 dedicated-server GameTests and ten resource/config checks.
+Highlight serialization now includes precise signed positions. Integrated client
+checks cover exclusive native/custom playback, all 13 full Vorbis decodes, clock jumps,
+completion after a stop message, and survival of one-shot audio after entity removal.
+The highlight client check moves a real server Hound outside tracking range, verifies
+live coordinates without a model, returns it to restore private glow, then checks off,
+fixed expiry and actual removal. Animation checks verify running-speed response and
+short flee entry while retaining the slower posture blends. OpenAL uses a virtual
+null output; physical listening remains for user testing.

@@ -550,7 +550,8 @@ public final class PortGameTests {
     @GameTest(template = "port_test")
     public static void highlightPayloadRoundTrip(GameTestHelper helper) {
         var ids = java.util.List.of(java.util.UUID.randomUUID(), java.util.UUID.randomUUID());
-        var packet = new de.cadentem.pale_hound.network.HoundHighlight(ids, 600);
+        var packet = new de.cadentem.pale_hound.network.HoundHighlight(ids, 600, java.util.List.of(
+            new de.cadentem.pale_hound.network.HoundHighlight.Position(ids.getFirst(), new Vec3(123.5, -60, -999.25))));
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {
             de.cadentem.pale_hound.network.HoundHighlight.STREAM_CODEC.encode(buffer, packet);

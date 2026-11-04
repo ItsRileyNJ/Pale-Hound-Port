@@ -509,7 +509,11 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    private PlayState predicate(AnimationState<PaleHoundEntity> state) {
       boolean isCurrentAboveSolid = this.level().getBlockState(this.blockPosition().above()).isSolid();
       boolean isCurrentTwoAboveSolid = this.level().getBlockState(this.blockPosition().above(2)).isSolid();
-      state.getController().setAnimationSpeed(ANIMATION_SPEED);
+      boolean fleeing = this.entityData.get(FLEEING_ACCESSOR);
+      state.getController().transitionLength(fleeing ? 3 : POSTURE_BLEND_TICKS);
+      double horizontalSpeed = Math.hypot(this.getDeltaMovement().x, this.getDeltaMovement().z);
+      state.getController().setAnimationSpeed(fleeing && state.isMoving()
+         ? Math.max(1.0, Math.min(3.0, horizontalSpeed / 0.2)) : ANIMATION_SPEED);
       if (this.isCrawling() || isCurrentAboveSolid) {
          CrawlPose pose = this.getAnimationCrawlPose();
          if (!state.isMoving()) return state.setAndContinue(switch (pose) {
@@ -519,7 +523,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          });
          Vec3 velocity = this.getDeltaMovement();
          double speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-         state.getController().setAnimationSpeed(ANIMATION_SPEED * Math.max(0.75, Math.min(3.0, speed * 50)));
+         state.getController().setAnimationSpeed(fleeing ? Math.max(1.0, Math.min(6.0, speed * 12))
+            : ANIMATION_SPEED * Math.max(0.75, Math.min(3.0, speed * 50)));
          if (this.isBackingAway()) return state.setAndContinue(switch (pose) {
             case TALL -> this.CRAWL_BACKWARD;
             case TUNNEL -> this.CRAWL_TUNNEL_BACKWARD;
@@ -532,10 +537,10 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          });
       } else if (isCurrentTwoAboveSolid) {
          return state.isMoving() ? state.setAndContinue(this.CROUCH_RUN) : state.setAndContinue(this.CROUCH_IDLE);
+      } else if (fleeing) {
+         return state.isMoving() ? state.setAndContinue(this.FLEE) : state.setAndContinue(this.CHASE_IDLE);
       } else if (this.isAggressive()) {
          return state.isMoving() ? state.setAndContinue(this.CHASE) : state.setAndContinue(this.IS_SPOTTED);
-      } else if ((Boolean)this.entityData.get(FLEEING_ACCESSOR)) {
-         return state.isMoving() ? state.setAndContinue(this.FLEE) : state.setAndContinue(this.CHASE_IDLE);
       } else if (!this.pleaseStopMoving && (!(Boolean)this.entityData.get(SPOTTED_ACCESSOR) || state.isMoving())) {
          return state.isMoving() ? state.setAndContinue(this.CALM_RUN) : state.setAndContinue(this.CALM_STILL);
       } else {

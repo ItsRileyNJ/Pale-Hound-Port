@@ -51,8 +51,25 @@ public final class ClientAnimationSmoke {
         controller.getStateHandler().handle(new AnimationState<>(hound, 0, 0, 0, false).withController(controller));
         if (!controller.getCurrentRawAnimation().equals(software.bernie.geckolib.animation.RawAnimation.begin().thenLoop("animation.pale_hound.crawl_low_idle")))
             throw new AssertionError("Blocked/idle backpedal must stop the reverse gait");
+        hound.setBackingAway(false);
+        hound.getEntityData().set(PaleHoundEntity.FLEEING_ACCESSOR, true);
+        hound.setDeltaMovement(new Vec3(0.6, 0, 0));
+        controller.getStateHandler().handle(new AnimationState<>(hound, 1, 1, 0, true).withController(controller));
+        if (Math.abs(controller.getAnimationSpeed() - 6.0) > 0.00001)
+            throw new AssertionError("Crawling escape must also match its fast physical movement");
+        hound.setCrawling(false); hound.setBackingAway(false);
+        hound.getEntityData().set(PaleHoundEntity.FLEEING_ACCESSOR, true);
+        hound.setAggressive(true); // Escape pose must win over any stale chase flag.
+        hound.setDeltaMovement(new Vec3(0.6, 0, 0));
+        controller.getStateHandler().handle(new AnimationState<>(hound, 1, 1, 0, true).withController(controller));
+        if (!controller.getCurrentRawAnimation().equals(software.bernie.geckolib.animation.RawAnimation.begin().thenLoop("animation.pale_hound.flee"))
+            || Math.abs(controller.getAnimationSpeed() - 3.0) > 0.00001 || transition.getDouble(controller) != 3)
+            throw new AssertionError("Fast escape must have a responsive, movement-matched running gait");
+        hound.setDeltaMovement(new Vec3(0.1, 0, 0));
+        controller.getStateHandler().handle(new AnimationState<>(hound, 1, 1, 0, true).withController(controller));
+        if (controller.getAnimationSpeed() != 1.0) throw new AssertionError("Escape gait must adjust to slower movement");
         hound.discard();
-        PaleHound.LOG.info("CLIENT ANIMATION SMOKE PASSED: baked model, all three reverse assets/selections, idle gait stop, 25% playback slowdown and 12-tick posture blending verified");
+        PaleHound.LOG.info("CLIENT ANIMATION SMOKE PASSED: baked model, all three reverse assets/selections, idle gait stop, 25% playback slowdown and 12-tick posture blending plus responsive, movement-matched fleeing verified");
         client.stop();
     }
 }

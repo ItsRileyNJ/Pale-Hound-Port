@@ -54,7 +54,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.8-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.9-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -181,8 +181,12 @@ pathfinding does not guarantee a route through every terrain layout.
 OPs (permission level 2) and creative players can use `/pale_hound highlight` to outline
 loaded Hounds in their current dimension for 30 seconds and report the nearest coordinates. `/pale_hound highlight 120`
 sets a duration of 1–300 seconds; `/pale_hound highlight off` clears it early.
-The outline is visible only to the requester and only for entities the client receives
-within tracking distance. It does not load chunks or reveal unloaded Hounds. Other
+The outline is private and requires the client to receive the model. A private HUD
+also shows direction, distance and live coordinates for up to three nearest selected
+Hounds, including those outside view. Positions refresh twice per second without
+extending the requested duration. The outline resumes automatically on returning to
+tracking range. Actual removal clears the display and reports that no selected Hound
+is loaded. Highlight never forces chunks or reveals unloaded Hounds. Other
 Pale Hound administration commands still require OP permissions. If none are found,
 the command names the searched dimension and reports loaded Hounds in other dimensions.
 
@@ -250,18 +254,20 @@ the supplied filenames, hashes, durations and converted asset paths.
 Spotting cues target the affected player and are throttled to prevent repeats for the
 same player within 45 seconds. Underground stalking cues begin 18–23 seconds after
 detection and repeat every 20–35 seconds while that behavior continues. Combat, flee,
-target loss and entity removal stop stalking playback. This adds audio to the existing
+target loss and entity removal end the stalking sequence; an active clip finishes naturally. This adds audio to the existing
 underground behavior; it does not introduce a new passive cave encounter.
 
 These are personal stereo playback cues. Crying uses the Ambient/Environment volume
-slider; detection and stalking use Hostile Creatures. One supplied clip plays per
-client at a time, with spotting taking priority over stalking and crying. Playback
-clears on world changes/logout. Original chase, hurt, death, fleeing and footstep sounds
-are retained, as are the original audio assets and event definitions.
+slider; detection and stalking use Hostile Creatures. One Hound sound plays per
+client at a time across supplied clips, original vocals and footsteps. Busy channels
+drop new requests rather than interrupting or queueing stale sounds. Clips finish
+naturally even if stalking ends or he leaves tracking range; world changes/logout
+still clear playback. The audio engine determines completion rather than a server-
+time deadline. Original audio assets and event definitions remain intact.
 
 Use `./gradlew runClient -PclientAudioSmoke=DisposableWorld` for the optional integrated
 sound test. It fully decodes all 13 clips through Minecraft's JOrbis decoder and checks
-real packet delivery, playback priorities, encounter-scoped stop and logout cleanup.
+real packet delivery, exclusive native/custom playback, natural completion, clock jumps, loss of entity tracking and logout cleanup.
 Use a disposable world: the fixture removes existing test Hounds and sets creative mode.
 
 ## Less frequent surface encounters (1.10.5)
@@ -320,7 +326,7 @@ The clear-air fallback for flying players is also 32 blocks away. Natural surfac
 spawns keep at least 32 blocks from players (or a larger configured minimum) and
 search a wider area. Cave minimums still use `spawn_distance`.
 
-All animation playback runs at 75% of its previous speed, as requested. Posture
+Normal animation playback runs at 75% of its previous speed, as requested. Fleeing uses movement-matched playback to keep its gait aligned. Posture
 blends increase from three to twelve animation ticks, and rising out of a low crawl
 requires half a second of consistent clearance. This smooths standing/crawl/low-crawl
 changes without slowing physical collision adjustments in tunnels. New reverse gait
@@ -334,3 +340,23 @@ stable; obstacles can still require a detour. Both surface and normal fleeing ke
 running while visible, considering the exposed head as well as the small crawl eye.
 Passing beyond each player's effective entity tracking range also counts as leaving
 sight. Network protocol 4 requires this update on both client and server.
+
+
+## Audio, distant highlight tracking and fleeing gait (1.10.9)
+
+An active crying/stalking clip no longer cuts off when the encounter switches to
+fleeing. The audio channel now includes original entity vocals, footsteps and legacy
+cues as well as supplied clips, and permits one Hound sound at a time. One-shot entity
+sounds detach from the model's tracking lifetime so leaving view does not cancel a
+clip. New sounds are skipped while the current sound plays; they are not queued to
+replay after the encounter. Server time jumps cannot terminate playback.
+
+Highlight distinguishes a server-loaded Hound from an available client model. Its
+private live location HUD remains when the model leaves view; when the Hound actually
+despawns, the session clears instead of leaving a stale marker. The command still
+uses the same OP/Creative restrictions and 1–300-second duration.
+
+The slow standing/crawl posture blends remain. Running away now enters its gait
+with a three-tick transition and scales standing playback from 1x to 3x with actual horizontal
+movement; the longer crawl loop can scale up to 6x during a fast escape. This prevents a long, slowed blend from looking frozen while he sprints.
+Network protocol 5 requires updating both client and server.

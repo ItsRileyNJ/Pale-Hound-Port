@@ -13,7 +13,6 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class HoundHighlightCommand {
     private HoundHighlightCommand() {}
@@ -29,7 +28,7 @@ public final class HoundHighlightCommand {
             .then(Commands.argument("seconds", IntegerArgumentType.integer(1, 300))
                 .executes(context -> highlight(context.getSource(), IntegerArgumentType.getInteger(context, "seconds"))))
             .then(Commands.literal("off").executes(context -> {
-                PacketDistributor.sendToPlayer(context.getSource().getPlayerOrException(), new HoundHighlight(List.of(), 0));
+                HoundHighlightTracker.stop(context.getSource().getPlayerOrException());
                 context.getSource().sendSuccess(() -> Component.literal("Pale Hound highlights cleared."), false);
                 return 1;
             }));
@@ -40,7 +39,7 @@ public final class HoundHighlightCommand {
         var level = player.serverLevel();
         var hounds = loadedHounds(level);
         var ids = hounds.stream().map(PaleHoundEntity::getUUID).toList();
-        PacketDistributor.sendToPlayer(player, new HoundHighlight(ids, seconds * 20));
+        HoundHighlightTracker.start(player, hounds, seconds * 20);
         int count = ids.size();
         String message;
         if (count == 0) {
@@ -55,9 +54,9 @@ public final class HoundHighlightCommand {
         } else {
             var nearest = hounds.stream().min(java.util.Comparator.comparingDouble(player::distanceToSqr)).orElseThrow();
             var pos = nearest.blockPosition();
-            message = "Highlighted " + count + " Pale Hound(s) for " + seconds + " seconds (visible only to you)."
+            message = "Tracking " + count + " Pale Hound(s) for " + seconds + " seconds (private outline and live location)."
                 + " Nearest: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()
-                + " (" + Math.round(player.distanceTo(nearest)) + " blocks).";
+                + " (" + Math.round(player.distanceTo(nearest)) + " blocks). Outline needs the model in view; the location display remains outside view.";
         }
         String feedback = message;
         source.sendSuccess(() -> Component.literal(feedback), false);

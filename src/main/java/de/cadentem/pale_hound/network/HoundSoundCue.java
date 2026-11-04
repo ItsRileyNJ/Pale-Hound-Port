@@ -6,7 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-/** Personal playback cues; a source UUID lets stalking playback stop with its encounter. */
+/** Personal playback cues associated with an encounter; ending a sequence lets active audio finish. */
 public record HoundSoundCue(Kind kind, UUID source) implements CustomPacketPayload {
     public static final Type<HoundSoundCue> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("pale_hound", "sound_cue"));
     public static final StreamCodec<FriendlyByteBuf, HoundSoundCue> STREAM_CODEC = StreamCodec.of(
