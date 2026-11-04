@@ -1109,6 +1109,20 @@ public final class PortGameTests {
     }
 
     @GameTest(template = "port_test")
+    public static void crawlingRemainsVisibleAtEncounterDistance(GameTestHelper helper) {
+        var hound = spawn(helper);
+        try {
+            helper.assertTrue(hound.shouldRenderAtSqrDistance(48 * 48), "Standing Hound should be visible at natural spawn distance");
+            hound.setCrawling(true);
+            helper.assertTrue(hound.shouldRenderAtSqrDistance(48 * 48), "Crawling Hound must not disappear visually at natural spawn distance");
+            helper.assertTrue(hound.getBoundingBoxForCulling().maxY >= hound.getY() + 2.15,
+                "Culling bounds must include the tall crouched model's head");
+            helper.assertTrue(hound.getBoundingBox().getYsize() == 0.5, "Visibility bounds must not enlarge tunnel collision dimensions");
+        } finally { hound.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "port_test")
     public static void soundPayloadRoundTrip(GameTestHelper helper) {
         var packet = new CaveSound(ResourceLocation.fromNamespaceAndPath("pale_hound", "cavenoise_1"), new BlockPos(-12, 63, 28), 3, 0.75F);
         var buffer = new FriendlyByteBuf(Unpooled.buffer());

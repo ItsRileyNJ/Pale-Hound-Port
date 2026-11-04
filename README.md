@@ -6,6 +6,38 @@ This is a source migration from the supplied `Pale_Hound-1.20.1-1.10.0.jar`.
 The port builds against the target loader and supplied GeckoLib JAR. See
 [validation status](docs/PORT_STATUS.md) for checks and remaining manual comparisons.
 
+## Story difficulty
+
+Select **Story** in the new-world difficulty selector or the in-game Options difficulty
+selector. Operators can use `/difficulty story` on any server; `/difficulty` reports
+Story while active. Choose Peaceful, Easy, Normal or Hard to leave it. Story persists
+with the world and uses Easy combat rules. Hardcore worlds do not support Story.
+Dedicated servers can enable it using the command or `/gamerule paleHoundStoryMode true`;
+vanilla `server.properties` difficulty values remain unchanged.
+
+Only allowlisted hostile types can spawn in Story. The default allows just
+`pale_hound:pale_hound`. Passive mobs, villagers, wolves and iron golems are unaffected.
+Natural spawning, spawners, eggs, summons and mobs loaded from saved chunks all obey
+the filter. Enabling Story removes existing disallowed hostiles without drops.
+Pale Hound encounter commands obey the allowlist too. Its normal biome, light and
+spawn-timer rules continue to apply to natural encounters.
+
+Edit `config/pale_hound-server.toml` in the game/server instance (or the world's
+`serverconfig` override if you use one):
+
+```toml
+[Behaviour]
+story_hostile_allowlist = ["pale_hound:pale_hound"]
+```
+
+Add exact entity IDs, for example `"minecraft:zombie"` or an optional mod's ID, to
+permit more hostiles. An empty list blocks every hostile, including the Hound.
+Reloading the server config applies the list and removes newly disallowed hostiles.
+Hostiles are recognized by Minecraft's Monster category or Enemy interface; unusual
+modded mobs that declare themselves passive need compatibility support. This is a
+saved mode over vanilla Easy, so other mods reading vanilla difficulty see Easy.
+Install this update on both client and server; the network protocol changed.
+
 ## Build and run
 
 With a Java 21 JDK installed and `JAVA_HOME` set:
@@ -22,7 +54,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.10.6-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.10.7-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -38,7 +70,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for thirty-four in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for thirty-seven in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -108,6 +140,10 @@ and retreat still suppress attacks against every target.
 
 The Mercenaries mod is optional, and its JAR is not bundled. For compatibility testing
 with your own copy, use `./gradlew runGameTestServer -PmercenariesJar=/absolute/path/to/mod.jar`.
+
+Crawling now uses separate visual bounds and a 128-block base draw distance, so its
+small tunnel collision box no longer makes the tall model vanish around 32 blocks.
+The video render-distance setting and loaded/tracked chunks still limit visibility.
 
 ## Longer presence and improved navigation
 

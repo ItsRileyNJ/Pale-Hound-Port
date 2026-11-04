@@ -52,6 +52,7 @@ public class ServerConfig {
     public static ModConfigSpec.DoubleValue MOVEMENT_SPEED;
     public static ModConfigSpec.DoubleValue DEPTH_STRIDER_BONUS;
     public static ModConfigSpec.BooleanValue ONLY_PLAY_NOISE_TO_TARGET;
+    public static ModConfigSpec.ConfigValue<List<? extends String>> STORY_HOSTILE_ALLOWLIST;
 
     public static final List<String> DEFAULT_SURFACE_BIOME_BLACKLIST = List.of("minecraft:badlands", "minecraft:wooded_badlands", "minecraft:eroded_badlands", "minecraft:desert");
     public static final List<String> LEGACY_SURFACE_BIOME_BLACKLIST = List.of("minecraft:badlands", "minecraft:bamboo_jungle", "minecraft:basalt_deltas", "minecraft:beach", "minecraft:birch_forest", "minecraft:cold_ocean", "minecraft:crimson_forest", "minecraft:dark_forest", "minecraft:deep_cold_ocean", "minecraft:deep_frozen_ocean", "minecraft:deep_lukewarm_ocean", "minecraft:deep_ocean", "minecraft:desert", "minecraft:eroded_badlands", "minecraft:flower_forest", "minecraft:forest", "minecraft:grove", "minecraft:jungle", "minecraft:lukewarm_ocean", "minecraft:mangrove_swamp", "minecraft:meadow", "minecraft:mushroom_fields", "minecraft:ocean", "minecraft:old_growth_birch_forest", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:plains", "minecraft:river", "minecraft:savanna", "minecraft:savanna_plateau", "minecraft:sparse_jungle", "minecraft:stony_peaks", "minecraft:stony_shore", "minecraft:sunflower_plains", "minecraft:swamp", "minecraft:taiga", "minecraft:warm_ocean", "minecraft:windswept_forest", "minecraft:windswept_gravelly_hills", "minecraft:wooded_woodlands");
@@ -157,6 +158,7 @@ public class ServerConfig {
         BUILDER.pop();
         BUILDER.pop();
         BUILDER.push("Behaviour");
+        STORY_HOSTILE_ALLOWLIST = BUILDER.comment("Hostile entity IDs allowed in Story difficulty. Empty blocks all hostiles. Other difficulties are unaffected.").defineListAllowEmpty("story_hostile_allowlist", List.of("pale_hound:pale_hound"), value -> value instanceof String id && id.contains(":") && net.minecraft.resources.ResourceLocation.tryParse(id) != null);
         SURFACE_STALK_DURATION_MULTIPLIER = BUILDER.comment("Additional multiplier for surface stalking duration; 2.0 gives about 3 to 4.5 minutes with default presence settings.").defineInRange("surface_stalk_duration_multiplier", 2.0, 0.1, 10.0);
         ROAM_RADIUS = BUILDER.comment("Horizontal radius for idle roaming destination searches.").defineInRange("roam_radius", 24, 8, 64);
         ROAM_INTERVAL = BUILDER.comment("Ticks between idle roaming attempts on average.").defineInRange("roam_interval", 40, 10, 1200);

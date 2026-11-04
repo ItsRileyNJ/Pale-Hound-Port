@@ -48,6 +48,7 @@ public class PaleHound {
    public static boolean RELOAD_MISSING = false;
 
    public PaleHound(IEventBus modEventBus, ModContainer container) {
+      de.cadentem.pale_hound.difficulty.StoryDifficulty.init();
       modEventBus.addListener(NetworkHandler::register);
       modEventBus.addListener(ModItems::addCreative);
       ModItems.register(modEventBus);

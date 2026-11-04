@@ -39,6 +39,8 @@ public class ModEvents {
       if (event.getConfig().getSpec() == ServerConfig.SPEC) {
          migrateBiomeConfig();
          PaleHound.RELOAD_ALL = true;
+         var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+         if (server != null) server.execute(() -> de.cadentem.pale_hound.difficulty.StoryDifficulty.apply(server));
          PaleHound.LOG.info("Server configuration has been reloaded");
       }
    }

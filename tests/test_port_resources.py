@@ -54,6 +54,11 @@ class PortResources(unittest.TestCase):
                 if not value['subtitle'].startswith('subtitles.pale_hound.'):
                     expected[value['subtitle']] = value['subtitle']
         expected.update({
+            'difficulty.pale_hound.story': 'Story',
+            'pale_hound.story.description': 'Easy combat. Only hostile mobs in the Story allowlist can spawn (default: Pale Hound).',
+            'pale_hound.story.hardcore': 'Story difficulty is unavailable in Hardcore worlds.',
+            'gamerule.paleHoundStoryMode': 'Story difficulty',
+            'gamerule.paleHoundStoryMode.description': 'Use Easy combat and allow only configured hostile mobs (default: Pale Hound). Removes other loaded hostiles. Not available in Hardcore.',
             'subtitles.pale_hound.ambient_crying': 'Distant crying',
             'subtitles.pale_hound.stalking_underground': 'Something stalks nearby',
             'subtitles.pale_hound.sees_player': 'The Hound notices you',
@@ -111,6 +116,7 @@ class PortResources(unittest.TestCase):
                     self.assertIn(addition, block)
                     block = block.replace(addition, '')
                     for addition in [
+                        'STORY_HOSTILE_ALLOWLIST = BUILDER.comment("Hostile entity IDs allowed in Story difficulty. Empty blocks all hostiles. Other difficulties are unaffected.").defineListAllowEmpty("story_hostile_allowlist", List.of("pale_hound:pale_hound"), value -> value instanceof String id && id.contains(":") && net.minecraft.resources.ResourceLocation.tryParse(id) != null);',
                         'SURFACE_STALK_DURATION_MULTIPLIER = BUILDER.comment("Additional multiplier for surface stalking duration; 2.0 gives about 3 to 4.5 minutes with default presence settings.").defineInRange("surface_stalk_duration_multiplier", 2.0, 0.1, 10.0);',
                         'SURFACE_SPAWN_TIMER_MULTIPLIER = BUILDER.comment("Additional surface-only spawn wait multiplier; 2.0 doubles surface waits without changing cave or noise timers.").defineInRange("surface_spawn_timer_multiplier", 2.0, 0.1, 10.0);',
                         'PRESENCE_TIME_MULTIPLIER = BUILDER.comment("Scale normal lifetime, chase duration and stalking duration; forced retreats remain three seconds.").defineInRange("presence_time_multiplier", 3.0, 0.1, 10.0);',

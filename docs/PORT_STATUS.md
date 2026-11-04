@@ -367,3 +367,50 @@ a wall test verifies flanking without returning toward the threat. Existing life
 coverage verifies the longer stalking bounds and finite three-second retreat.
 The intentionally rewritten original flee body is now covered by runtime checks
 rather than its old byte-normalized source hash.
+
+
+## Follow-up: Story difficulty and superflat visibility (1.10.7)
+
+Story is selectable in both world creation and the singleplayer Options difficulty
+cycle, and via OP-only `/difficulty story` on integrated or dedicated servers. Its
+persistent `paleHoundStoryMode` game rule backs the mode; combat uses vanilla Easy,
+without modifying the four serialized vanilla difficulty IDs. Standard difficulty
+commands and accepted vanilla difficulty packets leave Story, including selecting
+Easy when the underlying ID is already Easy. Locked GUI changes are rejected and
+Hardcore does not support Story. New-world selection saves the rule and Easy base;
+startup restores Easy even if a dedicated server's properties specify another base.
+
+The server config adds `Behaviour.story_hostile_allowlist`, defaulting to only
+`pale_hound:pale_hound`. Exact optional mod IDs are supported without dependencies,
+and an empty list permits no hostiles. Placement checks reject disallowed Monster
+types early; a server entity-join guard also covers Enemy implementations, spawners,
+eggs, summons, conversions and NBT-loaded mobs. Enabling Story and config reload prune
+loaded disallowed hostiles without drops. Passive mobs and standard difficulties
+are unaffected. The native spawn helper now respects a rejected entity join instead
+of reporting a successful spawn and resetting timers for a mob that never entered
+the world. Private encounter commands already checked join success.
+
+Client/server mode state and selector requests use authenticated NeoForge payloads.
+GUI requests require OP2 or the integrated owner, unlocked difficulty and a non-
+Hardcore world. The protocol is now version 3; update both ends. Client state clears
+on logout. A custom choice cycle keeps vanilla wire/save codecs intact; other mods
+reading vanilla Difficulty still observe Easy, and modded hostile types must declare
+the Monster category or Enemy interface to participate in the filter.
+
+Crawling previously reduced vanilla render distance to about 32 blocks because its
+physical box is only 0.5 blocks wide/tall. Rendering now uses a 128-block base range
+(with vanilla view-scale and entity-scale adjustments) and a separate visual culling
+box covering the tall model, while preserving the small tunnel collision dimensions.
+The new visibility regression failed at 48 blocks before the fix and passes after it.
+A disposable superflat client check verifies native and command placement on pristine
+negative-Y ground; sounds alone do not imply below-ground spawning. Chunk tracking and
+video render distance remain separate limits.
+
+All 37 dedicated-server GameTests and nine Python resource/config checks pass. Story
+coverage exercises default and custom/empty allowlists, passive mobs, saved-entity
+joins, placement checks for natural/spawner/egg/command reasons, loaded-hostile cleanup,
+NBT game-rule persistence, protocol round trips, command permissions, locked changes,
+and transitions to Easy and Hard. The actual client menus passed automated cycling,
+server packet activation/state synchronization, leaving Story for Easy, new-world
+Story selection and Hardcore/logout checks. Development smoke tests and structures
+are excluded from the distributable.

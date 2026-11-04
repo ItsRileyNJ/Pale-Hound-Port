@@ -690,6 +690,20 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       return (Boolean)this.entityData.get(CRAWLING_ACCESSOR);
    }
 
+   @Override public boolean shouldRenderAtSqrDistance(double distanceSquared) {
+      // The tunnel collision box is only half a block tall. It must not shrink the
+      // draw distance of a tall stalking model to 32 blocks on open terrain.
+      double range = 128.0 * Math.max(1.0, this.getScale()) * Entity.getViewScale();
+      return distanceSquared < range * range;
+   }
+
+   @Override public net.minecraft.world.phys.AABB getBoundingBoxForCulling() {
+      double scale = this.getScale();
+      return new net.minecraft.world.phys.AABB(this.getX() - 2 * scale, this.getY() - 0.25 * scale,
+         this.getZ() - 2 * scale, this.getX() + 2 * scale, this.getY() + 3.5 * scale,
+         this.getZ() + 2 * scale).minmax(super.getBoundingBoxForCulling());
+   }
+
    protected void tickDeath() {
       this.getLootTable();
       super.tickDeath();

@@ -120,6 +120,9 @@ public class Utils {
       int yOffset,
       Strategy strategy
    ) {
+      if (de.cadentem.pale_hound.difficulty.StoryDifficulty.isEnabled(level.getServer())
+         && entityType.getCategory() == net.minecraft.world.entity.MobCategory.MONSTER
+         && !de.cadentem.pale_hound.difficulty.StoryDifficulty.isAllowed(entityType)) return Optional.empty();
       MutableBlockPos mutableBlockPosition = blockPosition.mutable();
 
       for (int i = 0; i < attempts; i++) {
@@ -140,8 +143,10 @@ public class Utils {
                   if (isValidSpawn) {
                      entity.getNavigation().createPath(entity.blockPosition(), 0);
                      entity.getNavigation().stop();
-                     level.addFreshEntityWithPassengers(entity);
-                     return Optional.of(entity);
+                     if (level.addFreshEntity(entity)) {
+                        entity.getPassengers().forEach(level::addFreshEntityWithPassengers);
+                        return Optional.of(entity);
+                     }
                   }
                }
 

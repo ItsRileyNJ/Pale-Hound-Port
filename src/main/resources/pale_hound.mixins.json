@@ -7,10 +7,13 @@
     "MixinGroundPathNavigation",
     "MixinPathNavigation",
     "ClimberNavigationAccessor",
-    "NavigationStateAccessor"
+    "NavigationStateAccessor",
+    "MixinServerDifficulty"
   ],
   "client": [
-    "MixinMinecraftHighlight"
+    "MixinMinecraftHighlight",
+    "MixinOptionsStoryDifficulty",
+    "MixinCreateWorldStoryDifficulty"
   ],
   "required": true,
   "injectors": {
