@@ -1,4 +1,4 @@
-# Hunting behavior — 1.11.0
+# Hunting behavior — 1.11.1
 
 The Hound now follows evidence, loses targets, checks remembered locations and
 winds down after unsuccessful searches. It retains the existing model, movement
@@ -30,6 +30,14 @@ cover and the configured hearing multiplier:
 | Projectile impact | 24 blocks |
 | Swimming | 16 blocks |
 | Player damage | 24 blocks |
+| Eating or drinking | 12 blocks |
+| Equipping or removing armor | 16 blocks |
+
+Injuries and fall landings attract investigation. Eating and drinking are audible
+during chewing/sipping, including interrupted meals, as well as on completion.
+Equipment changes use actual equip/unequip events; silent hotbar changes do not
+make noise. Crouching does not silence these sounds. Falling through the air does
+not reveal the player before a landing or injury makes a sound.
 | Explosion | 64 blocks |
 
 Cover halves hearing range and reduces confidence. A heard event supplies a stored

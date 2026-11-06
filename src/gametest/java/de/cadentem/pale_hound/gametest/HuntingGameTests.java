@@ -57,6 +57,82 @@ public final class HuntingGameTests {
     }
 
     @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "sensory_hunting")
+    public static void playerInjuriesAndLandingsRevealOnlyTheirSoundLocation(GameTestHelper helper) throws ReflectiveOperationException {
+        var hound = hound(helper);
+        var player = new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "InjuryTest")) {
+            @Override public boolean isInvulnerableTo(net.minecraft.world.damagesource.DamageSource source) { return false; }
+        };
+        player.setGameMode(GameType.SURVIVAL); player.setPos(hound.position().add(0, 0, 20)); helper.getLevel().addNewPlayer(player);
+        var protection = net.minecraft.server.level.ServerPlayer.class.getDeclaredField("spawnInvulnerableTime");
+        protection.setAccessible(true); protection.setInt(player, 0);
+        try {
+            helper.assertTrue(player.hurt(player.damageSources().generic(), 1), "Fixture did not take real health damage");
+            var brain = hound.getHuntBrain();
+            helper.assertTrue(brain.lastHeardPosition() != null && brain.controlsMovement(), "Real player injury did not trigger investigation");
+            hound.tickCount += 5; player.setPos(hound.position().add(0, 0, -20)); emit(helper, GameEvent.HIT_GROUND, player);
+            helper.assertTrue(brain.lastHeardPosition().distanceTo(player.position()) < 1, "Landing did not redirect investigation to its sound location");
+            helper.assertTrue(hound.getTarget() == null && brain.lastSeenPosition() == null, "Injury/landing granted sight or a live combat target");
+            Vec3 heard = brain.lastHeardPosition(); player.setPos(player.position().add(0, 0, -10));
+            helper.assertTrue(heard.equals(brain.lastHeardPosition()), "Quiet airborne movement changed the remembered landing");
+        } finally { clean(helper, hound, player); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "sensory_hunting")
+    public static void chewingAndDrinkingAreAudibleBeforeCompletionButSilentUseIsNot(GameTestHelper helper) {
+        var hound = hound(helper); var player = player(helper, hound.position().add(0, 0, 10));
+        try {
+            var shield = new ItemStack(Items.SHIELD);
+            net.neoforged.neoforge.event.EventHooks.onItemUseTick(player, shield, 20);
+            var food = new ItemStack(Items.APPLE); player.setItemSlot(EquipmentSlot.MAINHAND, food);
+            player.startUsingItem(net.minecraft.world.InteractionHand.MAIN_HAND);
+            net.neoforged.neoforge.event.EventHooks.onItemUseTick(player, food, 32);
+            var brain = hound.getHuntBrain();
+            helper.assertTrue(brain.lastHeardPosition() == null, "Shield use or the silent beginning of a meal made noise");
+            player.setShiftKeyDown(true);
+            net.neoforged.neoforge.event.EventHooks.onItemUseTick(player, food, 24);
+            helper.assertTrue(brain.controlsMovement() && brain.lastHeardPosition() != null, "Audible chewing before completion was ignored, or crouching silenced it");
+            player.stopUsingItem(); hound.tickCount += 5; player.setPos(hound.position().add(0, 0, -10));
+            var potion = new ItemStack(Items.POTION); player.setItemSlot(EquipmentSlot.MAINHAND, potion);
+            player.startUsingItem(net.minecraft.world.InteractionHand.MAIN_HAND);
+            net.neoforged.neoforge.event.EventHooks.onItemUseTick(player, potion, 24);
+            helper.assertTrue(brain.lastHeardPosition().distanceTo(player.position()) < 1, "Audible sipping did not redirect the investigation");
+            player.stopUsingItem(); hound.tickCount += 5; player.setPos(hound.position().add(0, 0, 8));
+            food.finishUsingItem(helper.getLevel(), player);
+            helper.assertTrue(brain.lastHeardPosition().distanceTo(player.position()) < 1, "The real EAT completion event was ignored");
+            hound.tickCount += 5; player.setPos(hound.position().add(0, 0, -8));
+            var original = potion.copy(); var result = potion.finishUsingItem(helper.getLevel(), player);
+            net.neoforged.neoforge.event.EventHooks.onItemUseFinish(player, original, 0, result);
+            helper.assertTrue(brain.lastHeardPosition().distanceTo(player.position()) < 1, "Single-potion completion was ignored after its early bottle return");
+            helper.assertTrue(hound.getTarget() == null && brain.lastSeenPosition() == null, "Consumption sounds revealed a live player target");
+        } finally { clean(helper, hound, player); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "sensory_hunting")
+    public static void audibleEquipmentChangesAttractAttentionWithinTheirShorterRange(GameTestHelper helper) {
+        var hound = hound(helper);
+        var player = new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "EquipTest")) {
+            { firstTick = false; }
+        };
+        player.setGameMode(GameType.SURVIVAL); player.setPos(hound.position().add(0, 0, 18)); helper.getLevel().addNewPlayer(player);
+        try {
+            player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+            var brain = hound.getHuntBrain();
+            helper.assertTrue(brain.lastHeardPosition() == null, "Equipment noise exceeded its sixteen-block range");
+            player.setPos(hound.position().add(0, 0, 14));
+            player.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
+            helper.assertTrue(brain.lastHeardPosition() == null, "A silent hotbar change generated equipment noise");
+            player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.GOLDEN_HELMET));
+            helper.assertTrue(brain.controlsMovement() && brain.lastHeardPosition() != null, "Real armor equip event did not trigger investigation");
+            hound.tickCount += 5; player.setPos(hound.position().add(0, 0, -10)); player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+            helper.assertTrue(brain.lastHeardPosition().distanceTo(player.position()) < 1, "Removing equipment did not update the heard location");
+            helper.assertTrue(hound.getTarget() == null && brain.lastSeenPosition() == null, "Equipment noise granted sight of its player");
+        } finally { clean(helper, hound, player); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "sensory_hunting")
     public static void realStepsDistinguishSneakingWalkingAndSprinting(GameTestHelper helper) {
         var hound = hound(helper); hound.setYHeadRot(180);
         var player = player(helper, hound.position().add(0, 0, 20));

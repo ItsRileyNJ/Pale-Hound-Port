@@ -589,3 +589,26 @@ close-range melee damage and stable escaping. The integrated client compatibilit
 check baked the model and exercised all reverse poses, slow posture transitions and
 movement-matched escape playback. Production packaging excludes all development
 fixtures. No wire format changed; protocol 5 and GeckoLib 4.9.3 remain.
+
+## Player injury, consumption and equipment hearing (1.11.1)
+
+Eating and drinking now attract investigations within 12 blocks, including the
+audible chewing/sipping ticks before completion or interruption. The use-item
+listener follows vanilla's sound cadence, ignores canceled uses and silent use
+animations, and does not turn every item interaction into a noise. Real EAT/DRINK
+completion events are also recognized, with item-finish coverage for vanilla's
+single-potion early bottle return. Armor equip/unequip events are audible
+within 16 blocks; silent hotbar changes remain silent.
+
+Player injury and fall-landing hearing retain their 24-block range. All these
+disturbances share cover attenuation, hearing configuration, stored sound-location
+evidence and target eligibility checks. Sneaking quiets footsteps rather than
+silencing injuries, chewing or equipment. Airborne falling itself grants no
+knowledge before a landing or injury produces sound.
+
+Three added GameTests exercise actual health-damage events, landing evidence,
+chewing/drinking use ticks, actual consumption completions, real armor changes,
+shorter equipment range, silent shield/hotbar actions and absence of visual or
+live-coordinate targeting from sound. All 61 required dedicated-server tests and
+ten resource/config checks pass. No animations,
+playback channels, spawn timers or network formats changed.
