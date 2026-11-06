@@ -81,7 +81,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.12.0-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.12.1-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -406,7 +406,7 @@ start even while the player faces away. Walls, invisible-target configuration an
 normal Creative/Spectator protections are respected. Existing stalking duration,
 out-of-sight retreat removal and command timer exemption are retained.
 
-## Separate reference creature preview (1.12.0)
+## Separate reference creature preview (1.12.1)
 
 This build includes a first-pass static model based on the supplied four-view
 reference, with its own geometry, mottled texture and glowing eyes. The original
@@ -429,4 +429,4 @@ The editable GeckoLib geometry is `assets/pale_hound/geo/reference_preview.geo.j
 its own texture atlas and glow mask are under `textures/entity/reference_preview*`.
 `tools/build_reference_preview.py` reproducibly builds only those new assets.
 The prototype is posed for visual review and does not yet have locomotion animations.
-Install the 1.12.0 JAR on both client and server; GeckoLib remains required.
+Install the 1.12.1 JAR on both client and server; GeckoLib remains required.

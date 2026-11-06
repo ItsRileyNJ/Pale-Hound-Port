@@ -666,3 +666,14 @@ against the preceding commit and are unchanged. All 69 server regression tests
 and ten resource checks pass. A dedicated client fixture spawns the actual entity
 in a disposable world and captures `run/screenshots/reference-preview.png` for
 visual inspection. The source generator writes only the new preview resources.
+
+## Slender reference-preview refinement (1.12.1)
+
+Refined only the separate art prototype: torso width reduced 15%, head/jaw/ear
+assembly reduced 22%, narrower eye openings, longer/thinner forelimbs and rear
+legs, and a raised torso with matching shoulder and hip endpoints. Back-mane tufts
+are shorter, narrower and less bulky. Mouth and inner-ear tones are dark/muted,
+with desaturated skin patches replacing the earlier pink/red emphasis. Scaling is
+baked into geometry for GeckoLib compatibility. The original Hound assets remain
+byte-identical. Build, resource checks and an actual in-game visual check validate
+this art-only update; encounter logic is unchanged.
