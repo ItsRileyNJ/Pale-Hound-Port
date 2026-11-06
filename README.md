@@ -6,7 +6,7 @@ This is a source migration from the supplied `Pale_Hound-1.20.1-1.10.0.jar`.
 The port builds against the target loader and supplied GeckoLib JAR. See
 [validation status](docs/PORT_STATUS.md) for checks and remaining manual comparisons.
 
-## Sensory hunting (1.11.1)
+## Sensory hunting (1.11.2)
 
 The Hound now investigates footsteps, sprinting, doors, player injuries, landings,
 eating/drinking, audible equipment changes and other disturbances;
@@ -25,6 +25,13 @@ health, speed and target eligibility remain unchanged.
 learned hazards. See [the hunting guide](docs/HUNTING.md) for behavior, hearing ranges,
 configuration and persistence. The existing close-range surface attack and escape
 rules still apply; a recognized danger can take priority over approaching its holder.
+
+During quiet roaming or distant surface stalking, he occasionally approaches a
+visible dropped item and lowers into his lowest pose to examine it briefly. Sounds,
+nearby players, danger, lost visibility and stalled movement interrupt curiosity.
+Items are not taken or consumed. Bats and other non-player creatures cannot supply
+hearing distractions. Clear-ground path smoothing now applies to ordinary movement
+as well as escape routes; failed search paths no longer trigger arrival pauses.
 
 ## Story difficulty
 
@@ -74,7 +81,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.11.1-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.11.2-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -90,7 +97,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for sixty-one in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for sixty-nine in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their

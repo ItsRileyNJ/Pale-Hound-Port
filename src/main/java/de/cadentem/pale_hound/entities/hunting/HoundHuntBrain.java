@@ -44,6 +44,7 @@ public final class HoundHuntBrain {
     public double speed() { return isAngryTrail() ? 0.85 : 0.30; }
     public String phase() {
         if (hound.isAvoidingHazard()) return "AVOIDING_HAZARD";
+        if (hound.isInspectingItem()) return "INSPECTING_ITEM";
         if (activity != Activity.NONE) return activity.name();
         if (hound.isSurfaceStalkRetreating() || hound.isFleeing || hound.currentRoll == Roll.FLEE) return "RETREATING";
         if (hound.isAggressive() && hound.getTarget() != null) return "PURSUING";
@@ -96,6 +97,7 @@ public final class HoundHuntBrain {
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, hound)).getType() != HitResult.Type.MISS;
         if (muffled) { effectiveRadius *= 0.5; strength *= 0.6F; }
         if (distance > effectiveRadius || activity == Activity.RECOVERING && strength < 20) return false;
+        hound.cancelItemInspection();
         if (hound.tickCount - heardAt < 4 && strength <= lastStrength) return false;
         heardAt = hound.tickCount; lastStrength = strength;
         lastHeard = Vec3.atBottomCenterOf(BlockPos.containing(position));
@@ -126,6 +128,7 @@ public final class HoundHuntBrain {
     }
 
     public void acquired(Player player) {
+        hound.cancelItemInspection();
         activity = Activity.NONE; angry = false; atEvidence = false; searched.clear();
         observe(player);
     }

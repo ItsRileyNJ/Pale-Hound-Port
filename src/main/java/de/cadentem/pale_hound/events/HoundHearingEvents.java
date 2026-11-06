@@ -49,6 +49,9 @@ public final class HoundHearingEvents {
         var cause = event.getCause();
         if (cause instanceof Projectile projectile) cause = projectile.getOwner();
         if (cause instanceof net.minecraft.world.entity.item.PrimedTnt tnt) cause = tnt.getOwner();
+        // Only players and unattributed world disturbances are hearing evidence.
+        // Bat/passive-mob steps, splashes, impacts and button/door events must never redirect a hunt.
+        if (cause instanceof net.minecraft.world.entity.LivingEntity && !(cause instanceof Player)) return;
         Player player = cause instanceof Player owner ? owner : null;
         var kind = event.getVanillaEvent();
         double radius; float strength;

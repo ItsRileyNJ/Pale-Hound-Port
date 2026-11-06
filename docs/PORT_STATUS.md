@@ -612,3 +612,41 @@ shorter equipment range, silent shield/hotbar actions and absence of visual or
 live-coordinate targeting from sound. All 61 required dedicated-server tests and
 ten resource/config checks pass. No animations,
 playback channels, spawn timers or network formats changed.
+
+## Brief item inspections and fluid ground investigation (1.11.2)
+
+The Hound occasionally inspects nearby visible dropped items during quiet roaming
+or distant surface stalking. Only complete approaches to grounded items within
+12 blocks qualify. Curiosity never closes within 24 blocks of a watched player,
+and yields to close player contact, combat, escape, hazard avoidance and active
+sound/last-known-position investigation. The item remains untouched.
+
+On arrival he uses the lowest crawl idle and looks down for two to three seconds,
+with the existing 12-tick posture transition. A relevant audible sound cancels item
+attention immediately, including when the watched player remains visible. Item
+removal, lost visibility and one second without approach progress abort it too.
+Completion/cancellation imposes a 30–50 second curiosity cooldown and releases
+movement for stalking or roaming, rather than holding an idle goal indefinitely.
+
+Hearing rejects non-player living-creature sources after resolving projectile and
+TNT ownership, so bats and passive creatures cannot distract hunting/stalking with
+steps, splashes, impacts, damage or door/button events. Player-owned disturbances
+and unattributed environmental events retain the existing hearing rules.
+
+Collision-checked, supported-ground shortcutting now applies to ordinary routes
+as well as retreats. Search approaches watch physical progress and switch routes
+after a stall instead of counting an abandoned path as arrival and taking a staring
+pause. Actual arrival at an initial ground evidence point uses the lowest posture.
+
+All 69 required server GameTests and ten resource/config checks pass. Eight new
+tests cover real approach/brief low inspection/resumption without item consumption,
+sound interruption, passive-creature filtering during stalking and hunting,
+hidden items and lost visibility, stalled approaches/cooldowns, nearby players,
+item removal, failed-versus-actual evidence arrival, and clear diagonal smoothing
+without wall cutting. Existing cave navigation and encounter regressions pass.
+The client animation check additionally verifies the real low inspection state
+selects crawl_low_idle in open air with the existing posture blend.
+
+The synchronized ground-inspection flag changes entity metadata. Networking is
+version 6 so client and server must both update; incompatible versions are rejected
+before joining. Spawn timers, damage, audio playback and animation assets are unchanged.

@@ -91,6 +91,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public static final EntityDataAccessor<Boolean> SPOTTED_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> CLIMBING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> BACKING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
+   public static final EntityDataAccessor<Boolean> GROUND_INSPECTION_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
+   private de.cadentem.pale_hound.entities.goals.PaleHoundInspectItemGoal inspectItemGoal;
    public Roll currentRoll = Roll.STROLL;
    private final de.cadentem.pale_hound.entities.hunting.HoundHuntBrain huntBrain = new de.cadentem.pale_hound.entities.hunting.HoundHuntBrain(this);
    private final de.cadentem.pale_hound.entities.hunting.HoundHazardLearning hazardLearning = new de.cadentem.pale_hound.entities.hunting.HoundHazardLearning(this);
@@ -186,12 +188,15 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       builder.define(SPOTTED_ACCESSOR, false);
       builder.define(CLIMBING_ACCESSOR, false);
       builder.define(BACKING_ACCESSOR, false);
+      builder.define(GROUND_INSPECTION_ACCESSOR, false);
    }
 
    protected void registerGoals() {
       this.goalSelector.addGoal(0, new de.cadentem.pale_hound.entities.goals.PaleHoundHazardAvoidGoal(this));
+      this.inspectItemGoal = new de.cadentem.pale_hound.entities.goals.PaleHoundInspectItemGoal(this);
+      this.goalSelector.addGoal(1, this.inspectItemGoal);
       this.goalSelector.addGoal(1, new FloatGoal(this));
-      this.goalSelector.addGoal(1, new PaleHoundSurfaceStalkGoal(this));
+      this.goalSelector.addGoal(2, new PaleHoundSurfaceStalkGoal(this));
       this.goalSelector.addGoal(1, new de.cadentem.pale_hound.entities.goals.PaleHoundHuntGoal(this));
       this.goalSelector.addGoal(1, new PaleHoundBreakBlocksGoal(this));
       this.goalSelector.addGoal(2, new PaleHoundChaseGoal(this, true));
@@ -283,6 +288,18 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public de.cadentem.pale_hound.entities.hunting.HoundHazardLearning getHazardLearning() { return this.hazardLearning; }
    public boolean isAvoidingHazard() { return this.hazardLearning != null && this.hazardLearning.isAvoiding(); }
    public boolean canSeePlayer(Player player) { return this.huntBrain.canSee(player, false); }
+   public boolean isInspectingItem() { return this.inspectItemGoal != null && this.inspectItemGoal.isActive(); }
+   public de.cadentem.pale_hound.entities.goals.PaleHoundInspectItemGoal getItemInspectionGoal() { return this.inspectItemGoal; }
+   public boolean isInspectingGround() { return this.entityData.get(GROUND_INSPECTION_ACCESSOR); }
+   public void setInspectingGround(boolean value) {
+      this.entityData.set(GROUND_INSPECTION_ACCESSOR, value);
+      if (value) this.setCrawling(true);
+   }
+   public void cancelItemInspection() { if (this.inspectItemGoal != null) this.inspectItemGoal.cancel(); }
+   public void resumeRoaming() {
+      if (this.roamingGoal != null && !this.isSurfaceStalking() && this.getTarget() == null
+         && !this.huntBrain.blocksLegacyTargeting() && this.currentRoll == Roll.STROLL) this.roamingGoal.trigger();
+   }
 
    public void beginEvidenceInvestigation() {
       this.surfaceStalkTarget = null;
@@ -497,7 +514,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
          boolean closeChase = this.currentRoll == Roll.CHASE && this.isAggressive()
             && this.getTarget() != null && this.getTarget().isAlive()
             && this.distanceToSqr(this.getTarget()) <= 12.0 * 12.0;
-         boolean shouldCrawl = !this.isAvoidingHazard() && (this.huntBrain.shouldCrawl() || this.isSurfaceStalking() && !this.isSurfaceStalkRetreating()) || shouldCrouch || closeChase || isAboveSolid
+         boolean shouldCrawl = this.isInspectingItem() || this.isInspectingGround() || !this.isAvoidingHazard() && (this.huntBrain.shouldCrawl() || this.isSurfaceStalking() && !this.isSurfaceStalkRetreating()) || shouldCrouch || closeChase || isAboveSolid
             || !isOffsetFacingSolid && isOffsetFacingAboveSolid || isFacingSolid && isTwoAboveSolid;
          if (this.isAggressive() || this.isFleeing) {
             this.entityData.set(SPOTTED_ACCESSOR, false);
@@ -537,6 +554,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       if (this.isSurfaceStalkRetreating() || this.isFleeing) return 1.2;
       if (this.isAvoidingHazard()) return 1.1;
       if (this.isBackingAway()) return 0.22;
+      if (this.isInspectingItem()) return 0.35;
       if (this.huntBrain.controlsMovement()) return this.huntBrain.speed();
       return this.isCrawling() ? 0.35 : (this.isCrouching() ? 0.6 : 0.85);
    }
@@ -785,6 +803,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public enum CrawlPose { TALL, TUNNEL, LOW }
 
    public CrawlPose getCrawlPose() {
+      if (this.isInspectingGround()) return CrawlPose.LOW;
       double halfWidth = 0.25 * this.getScale();
       var tallBounds = new net.minecraft.world.phys.AABB(this.getX() - halfWidth, this.getY() + 0.000001,
          this.getZ() - halfWidth, this.getX() + halfWidth, this.getY() + 2.7 * this.getScale() - 0.000001,

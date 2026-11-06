@@ -69,7 +69,19 @@ public final class ClientAnimationSmoke {
         controller.getStateHandler().handle(new AnimationState<>(hound, 1, 1, 0, true).withController(controller));
         if (controller.getAnimationSpeed() != 1.0) throw new AssertionError("Escape gait must adjust to slower movement");
         hound.discard();
-        PaleHound.LOG.info("CLIENT ANIMATION SMOKE PASSED: baked model, all three reverse assets/selections, idle gait stop, 25% playback slowdown and 12-tick posture blending plus responsive, movement-matched fleeing verified");
+        var inspection = new PaleHoundEntity(ModEntityTypes.PALE_HOUND.get(), client.level);
+        inspection.setPos(client.player.position().add(0, 10, 0));
+        inspection.setInspectingGround(true);
+        if (!inspection.isCrawling() || inspection.getCrawlPose() != PaleHoundEntity.CrawlPose.LOW)
+            throw new AssertionError("Ground inspection did not request the lowest pose in open air");
+        var inspectingController = inspection.getAnimatableInstanceCache().<PaleHoundEntity>getManagerForId(inspection.getId()).getAnimationControllers().get("controller");
+        lastModel.set(inspectingController, model);
+        inspectingController.getStateHandler().handle(new AnimationState<>(inspection, 0, 0, 0, false).withController(inspectingController));
+        if (!inspectingController.getCurrentRawAnimation().equals(software.bernie.geckolib.animation.RawAnimation.begin().thenLoop("animation.pale_hound.crawl_low_idle"))
+            || transition.getDouble(inspectingController) != 12)
+            throw new AssertionError("Ground inspection did not play low idle with the existing slow posture blend");
+        inspection.setInspectingGround(false); inspection.discard();
+        PaleHound.LOG.info("CLIENT ANIMATION SMOKE PASSED: baked model, reverse assets/selections, idle gait stop, 25% playback slowdown, 12-tick posture blending, movement-matched fleeing and lowest ground-inspection idle verified");
         client.stop();
     }
 }

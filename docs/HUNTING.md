@@ -1,4 +1,4 @@
-# Hunting behavior — 1.11.1
+# Hunting behavior — 1.11.2
 
 The Hound now follows evidence, loses targets, checks remembered locations and
 winds down after unsuccessful searches. It retains the existing model, movement
@@ -43,7 +43,31 @@ not reveal the player before a landing or injury makes a sound.
 Cover halves hearing range and reduces confidence. A heard event supplies a stored
 location/area, never the hidden player's continuously updated coordinates.
 Unowned explosions and projectile impacts can also distract him. New sounds from
-Hounds themselves do not feed back into the player-hearing system.
+Hounds themselves do not feed back into the player-hearing system. Bats and other
+non-player living creatures are ignored, including their door/button activation
+and projectile-impact events. Player-owned projectile/explosive sounds and
+unattributed world disturbances remain audible.
+
+## Ground inspections and movement
+
+While quietly roaming or stalking from a safe distance, he sometimes notices a
+visible dropped item within 12 blocks. He checks a complete reachable approach,
+creeps over, then lowers into his lowest crawl pose and looks down for two to three
+seconds. He leaves the item untouched. Nearby players within 24 blocks, combat,
+escape, danger and active evidence hunting take priority; he will not use an item
+to approach within 24 blocks of his watched player.
+
+A relevant audible sound cancels item attention immediately, even while a watched
+player is visible. Passive-creature noise does not cancel it. Losing sight of an
+item, item removal or a second without approach progress also aborts inspection.
+Attempts have a 30–50 second cooldown after completion or cancellation, so an
+inaccessible item cannot repeatedly stop him. Reaching an initial sound evidence
+point also uses the lowest pose during its short inspection pause.
+
+Navigation smooths open-ground paths only across collision-free, supported ground.
+It retains precise corner following where a shortcut would cross a wall, gap or
+known hazard. Evidence routes that stall for a second or end away from their
+destination try alternatives without pretending to arrive or taking a staring pause.
 
 ## Escalation and uncertainty
 
@@ -52,6 +76,7 @@ Hounds themselves do not feed back into the player-hearing system.
 | `ROAMING` | Listen, patrol, and notice visible players. |
 | `INVESTIGATING` | Creep toward a heard area without a combat lock. |
 | `STALKING` | Observe/follow a visible surface player; close crowding can trigger combat. |
+| `INSPECTING_ITEM` | Briefly approach and examine a visible dropped item; yield to sounds and threats. |
 | `PURSUING` | Chase a confirmed target. |
 | `SEARCHING` | Visit the last known location and reachable nearby corners/exits; pause and look around. |
 | `RECOVERING` | Roam quietly after an unsuccessful search or disengagement. |
@@ -135,3 +160,6 @@ blocks, and a 14-block gaze reaction with a one-second rush window. A recognized
 hazard can take priority over approaching its holder. Sound playback
 still permits one Hound sound at a time. Install the updated JAR on client and server;
 GeckoLib remains a separate dependency.
+
+Version 1.11.2 adds synchronized ground-inspection posture and uses networking
+version 6. Update both client and server together.
