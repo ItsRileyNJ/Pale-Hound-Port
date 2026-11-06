@@ -20,6 +20,7 @@ public class ModEvents {
    @SubscribeEvent
    public static void entityAttributeEvent(EntityAttributeCreationEvent event) {
       event.put((EntityType)ModEntityTypes.PALE_HOUND.get(), PaleHoundEntity.getAttributeBuilder());
+      event.put(ModEntityTypes.REFERENCE_PREVIEW.get(), net.minecraft.world.entity.Mob.createMobAttributes().build());
    }
 
    @SubscribeEvent

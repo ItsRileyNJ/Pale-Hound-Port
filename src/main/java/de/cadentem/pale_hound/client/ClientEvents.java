@@ -14,5 +14,6 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntityTypes.PALE_HOUND.get(), PaleHoundRenderer::new);
+        event.registerEntityRenderer(ModEntityTypes.REFERENCE_PREVIEW.get(), ReferencePreviewRenderer::new);
     }
 }

@@ -30,5 +30,6 @@
   "pale_hound.story.description": "Easy combat. Only hostile mobs in the Story allowlist can spawn (default: Pale Hound).",
   "pale_hound.story.hardcore": "Story difficulty is unavailable in Hardcore worlds.",
   "gamerule.paleHoundStoryMode": "Story difficulty",
-  "gamerule.paleHoundStoryMode.description": "Use Easy combat and allow only configured hostile mobs (default: Pale Hound). Removes other loaded hostiles. Not available in Hardcore."
+  "gamerule.paleHoundStoryMode.description": "Use Easy combat and allow only configured hostile mobs (default: Pale Hound). Removes other loaded hostiles. Not available in Hardcore.",
+  "entity.pale_hound.reference_preview": "Reference Creature (Art Preview)"
 }

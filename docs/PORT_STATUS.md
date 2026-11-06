@@ -650,3 +650,19 @@ selects crawl_low_idle in open air with the existing posture blend.
 The synchronized ground-inspection flag changes entity metadata. Networking is
 version 6 so client and server must both update; incompatible versions are rejected
 before joining. Spawn timers, damage, audio playback and animation assets are unchanged.
+
+## Isolated reference-creature art preview (1.12.0)
+
+Added `pale_hound:reference_preview`, a stationary, persistent, non-hostile MISC
+entity available through `/summon`. It has independent geometry, a procedural
+mottled skin/fur atlas and emissive cyan eyes. Its first-pass posed rig contains
+21 named bones and 145 cuboids: elongated forelimbs, bent rear legs, connected
+neck/skull, open jaw, teeth, ears, paws, layered mane and a tapering tail.
+There are no natural spawn registrations or encounter goals for this entity.
+The empty independent animation resource supports static visual review.
+
+The original tracked geometry, textures and animations were compared byte-for-byte
+against the preceding commit and are unchanged. All 69 server regression tests
+and ten resource checks pass. A dedicated client fixture spawns the actual entity
+in a disposable world and captures `run/screenshots/reference-preview.png` for
+visual inspection. The source generator writes only the new preview resources.

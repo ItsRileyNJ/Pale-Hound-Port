@@ -56,6 +56,7 @@ class PortResources(unittest.TestCase):
                 if not value['subtitle'].startswith('subtitles.pale_hound.'):
                     expected[value['subtitle']] = value['subtitle']
         expected.update({
+            'entity.pale_hound.reference_preview': 'Reference Creature (Art Preview)',
             'difficulty.pale_hound.story': 'Story',
             'pale_hound.story.description': 'Easy combat. Only hostile mobs in the Story allowlist can spawn (default: Pale Hound).',
             'pale_hound.story.hardcore': 'Story difficulty is unavailable in Hardcore worlds.',
