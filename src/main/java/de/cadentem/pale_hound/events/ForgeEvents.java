@@ -51,6 +51,9 @@ public class ForgeEvents {
                HIT_COUNTER.merge(paleHound.getId(), 1, Integer::sum);
                if (HIT_COUNTER.get(paleHound.getId()) > 5) {
                   HIT_COUNTER.remove(paleHound.getId());
+                  if (paleHound.getHuntBrain().enabled() && de.cadentem.pale_hound.entities.navigation.HoundEscapeVisibility.isVisible(paleHound)) {
+                     paleHound.getNavigation().stop(); event.setCanceled(true); return;
+                  }
                   boolean couldTeleport = paleHound.teleportToTarget();
                   paleHound.hurtMarked = true;
                   if (!couldTeleport) {
@@ -90,6 +93,7 @@ public class ForgeEvents {
       LiteralArgumentBuilder<CommandSourceStack> builder = (LiteralArgumentBuilder<CommandSourceStack>)Commands.literal("pale_hound")
          .requires(HoundHighlightCommand::canUse);
       builder.then(HoundHighlightCommand.command());
+      builder.then(de.cadentem.pale_hound.commands.HoundInspectCommand.command());
       builder.then(de.cadentem.pale_hound.commands.HoundEncounterCommand.command());
       builder.then(
          Commands.literal("fast_forward").requires(source -> source.hasPermission(2))

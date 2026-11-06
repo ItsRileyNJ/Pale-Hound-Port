@@ -17,10 +17,12 @@ public class PaleHoundStareGoal extends Goal {
 
    public PaleHoundStareGoal(PaleHoundEntity paleHound) {
       this.paleHound = paleHound;
+      this.setFlags(java.util.EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
       this.lookedAtMax = paleHound.getRandom().nextIntBetweenInclusive(4, 13);
    }
 
    public boolean canUse() {
+      if (this.paleHound.getHuntBrain().blocksLegacyTargeting() || this.paleHound.isAvoidingHazard()) return false;
       if (this.paleHound.isInvisible()) {
          return false;
       } else {
@@ -29,6 +31,7 @@ public class PaleHoundStareGoal extends Goal {
    }
 
    public boolean canContinueToUse() {
+      if (this.paleHound.getHuntBrain().blocksLegacyTargeting() || this.paleHound.isAvoidingHazard()) return false;
       LivingEntity lastHurtByMob = this.paleHound.getLastHurtByMob();
       LivingEntity target = this.paleHound.getTarget();
       if (lastHurtByMob instanceof Player) {
@@ -66,7 +69,9 @@ public class PaleHoundStareGoal extends Goal {
 
          if (this.lookedAtCount > this.lookedAtMax) {
             if (!actuallyLooking && this.paleHound.getRandom().nextDouble() < 0.1) {
-               this.paleHound.disappear();
+               if (this.paleHound.getHuntBrain().enabled()) this.paleHound.getHuntBrain().disengage();
+               else this.paleHound.disappear();
+               return;
             } else if (this.paleHound.getRandom().nextDouble() < 0.3) {
                this.paleHound.pickRoll(List.of(Roll.CHASE, Roll.FLEE));
             }

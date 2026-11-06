@@ -66,7 +66,7 @@ public class PaleHoundChaseGoal extends Goal {
    }
 
    public boolean canContinueToUse() {
-      if (this.paleHound.isSurfaceStalking() || this.paleHound.currentRoll != Roll.CHASE || this.paleHound.isFleeing) {
+      if (this.paleHound.isAvoidingHazard() || this.paleHound.getHuntBrain().blocksLegacyTargeting() || this.paleHound.isSurfaceStalking() || this.paleHound.currentRoll != Roll.CHASE || this.paleHound.isFleeing) {
          return false;
       }
       LivingEntity target = this.paleHound.getTarget();
@@ -94,6 +94,7 @@ public class PaleHoundChaseGoal extends Goal {
    }
 
    public void start() {
+      this.ticksUntilLeave = Utils.presenceTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE_CHASE.get());
       this.paleHound.setAggressive(true);
       this.ticksUntilNextAttack = 0;
    }
@@ -118,7 +119,9 @@ public class PaleHoundChaseGoal extends Goal {
 
    public void tick() {
       if (this.ticksUntilLeave <= 0 && !this.paleHound.targetIsFacingMe) {
-         this.paleHound.disappear();
+         if (this.paleHound.getHuntBrain().enabled()) this.paleHound.getHuntBrain().disengage();
+         else this.paleHound.disappear();
+         return;
       }
 
       LivingEntity target = this.paleHound.getTarget();

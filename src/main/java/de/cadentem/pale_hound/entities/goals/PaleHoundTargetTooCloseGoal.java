@@ -18,9 +18,10 @@ public class PaleHoundTargetTooCloseGoal extends NearestAttackableTargetGoal<Pla
    }
 
    public boolean canUse() {
+      if (this.paleHound.getHuntBrain().blocksLegacyTargeting()) return false;
       if (!this.paleHound.isInvisible()) {
          LivingEntity target = this.paleHound.level().getNearestPlayer(this.paleHound, this.distanceThreshold);
-         if (this.paleHound.isValidEncounterTarget(target)) {
+         if (this.paleHound.isValidEncounterTarget(target) && this.paleHound.canSeePlayer((Player)target)) {
             this.target = target;
             return true;
          }

@@ -15,11 +15,12 @@ public class PaleHoundTargetSeesMeGoal extends NearestAttackableTargetGoal<Playe
    }
 
    public boolean canUse() {
+      if (this.caveDweller.getHuntBrain().blocksLegacyTargeting()) return false;
       if (this.caveDweller.isInvisible()) {
          return false;
       } else {
          this.target = Utils.getValidTarget(this.caveDweller);
-         return !this.caveDweller.isValidEncounterTarget(this.target) ? false : this.caveDweller.isLookingAtMe(this.target, true);
+         return !this.caveDweller.isValidEncounterTarget(this.target) ? false : this.caveDweller.canSeePlayer((Player)this.target) && this.caveDweller.isLookingAtMe(this.target, true);
       }
    }
 

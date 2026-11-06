@@ -533,3 +533,59 @@ backward movement, straight escape, despawn/quarter-wait behavior and command ti
 exemption under the new distances. The physical fake player explicitly disables its
 permanent test-only spawn protection. No wire or asset formats changed; protocol 5
 and the previously verified audio/highlight/animation behavior are retained.
+
+
+## Sensory hunting, light awareness and experience (1.11.0)
+
+Added an evidence-based server hunting controller with investigation, last-known-
+position searches, suspicion, reacquisition and quiet recovery. Lost visibility ends
+live player targeting before navigation ticks; paths then use stored evidence and
+observed travel direction. Searches visit reachable alternative ground positions,
+pause to look around and maintain bounded recent-waypoint history. Real sight is
+required to resume targeting. A removed/disconnected player also becomes a finite
+search rather than a ghost target. The original target-type policy, 12-block attack
+priority and short-range gaze reaction are retained.
+
+Vanilla game-event hearing distinguishes careful footsteps, walking, sprinting,
+landing, doors/containers, building, projectiles, swimming, injury and explosions.
+It ignores the Hound's own events, validates player eligibility, applies range and
+cover attenuation, throttles repeated events and snapshots the heard area. Unowned
+explosions/impacts support distractions. Repeated local disturbances raise bounded
+suspicion and can extend search persistence; no hidden live player position is used
+to navigate. Defaults are a 45-second search, 45-second unrefreshed memory and a
+30-second recovery interval. Very close visible contact/loud new evidence can
+interrupt recovery. Investigation A* effort increases to 10 times vanilla by
+default, configurable up to 32, with bounded candidate counts and no forced chunks.
+
+Held-light item tags, block light and bright daylight extend discovery range from
+64 to 96 blocks. Darkness, sneaking and the discovery vision cone permit stealth;
+cover remains authoritative. Both hands count, and datapacks can extend the light
+item tag. Already confirmed clear views are not erased just by crouching.
+
+Actual post-mitigation damage teaches bounded hazard experience for lava, heat,
+explosives, webs, sharp terrain and freezing. Web association requires injury while
+trapped. Unknown hazards begin with neutral costs; learned costs and a temporary
+withdrawal goal change decisions without granting immunity. Primed TNT danger is
+recognized through sight or close audible proximity, and repeated experience
+associates corresponding held tools with risk. The custom node evaluator preserves
+walls, doors and unsupported air while adding learned risk to walkable nodes.
+Individual NBT retains personal experience; optional shared SavedData carries it
+across future encounters and restarts in the same world (default enabled).
+
+The stare goal now claims movement/look flags and yields to evidence searches and
+learned withdrawal. Legacy stare/chase timeouts disengage instead of visibly
+vanishing; each new chase receives its configured duration. Drowning/void rescue
+cannot visibly teleport the Hound or use a hidden player's live coordinates.
+The new OP/Creative `/pale_hound inspect` reports actual state, evidence, suspicion
+and effective hazard experience. All settings are documented in `docs/HUNTING.md`.
+
+All 58 required dedicated-server GameTests and ten resource/config checks pass.
+New tests cover real game-event hearing, cover attenuation, quiet movement, snapshot
+navigation, visual reacquisition, player removal, finite searches, repeated noise,
+held lights, block light, discovery cones, actual investigative movement, actual
+health-damage learning, held-hazard withdrawal, world/individual persistence, and
+walkability near explosives. Existing 45 regressions still pass, including real
+close-range melee damage and stable escaping. The integrated client compatibility
+check baked the model and exercised all reverse poses, slow posture transitions and
+movement-matched escape playback. Production packaging excludes all development
+fixtures. No wire format changed; protocol 5 and GeckoLib 4.9.3 remain.

@@ -144,6 +144,10 @@ class PortResources(unittest.TestCase):
                     ]:
                         self.assertIn(addition, block)
                         block = block.replace(addition, '')
+                    hunting = source[source.index('        BUILDER.push("Hunting");'):source.index('        SPEC = BUILDER.build();')]
+                    self.assertIn('sensory_hunting', hunting)
+                    self.assertIn('memory_seconds', hunting)
+                    block = block.replace(hunting, '')
                     # The new default blacklist deliberately replaces the original surface list.
                     legacy = re.search(r'LEGACY_SURFACE_BIOME_BLACKLIST = (List\.of\(.*?\));', source).group(1)
                     block = block.replace('DEFAULT_SURFACE_BIOME_BLACKLIST', legacy)
@@ -159,6 +163,16 @@ class PortResources(unittest.TestCase):
                 body = source[source.index('public '):]
                 body = re.sub(r'this\.(?:paleHound|caveDweller)\.isValidEncounterTarget\(', 'Utils.isValidTarget(', body)
                 body = body.replace('!this.paleHound.targetIsFacingMe && !this.paleHound.isSurfaceStalkAttack()', '!this.paleHound.targetIsFacingMe')
+                body = re.sub(r'if \(this\.(?:paleHound|caveDweller)\.getHuntBrain\(\)\.blocksLegacyTargeting\(\)\) return false;', '', body)
+                body = body.replace('this.paleHound.isAvoidingHazard() || ', '')
+                body = body.replace('this.paleHound.getHuntBrain().blocksLegacyTargeting() || ', '')
+                body = re.sub(r'if \(this\.paleHound\.isAvoidingHazard\(\)\) return false;', '', body)
+                body = body.replace(' && this.paleHound.canSeePlayer((Player)target)', '')
+                body = body.replace('this.caveDweller.canSeePlayer((Player)this.target) && ', '')
+                body = body.replace('this.setFlags(java.util.EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));', '')
+                body = re.sub(r'if \(this\.paleHound\.getHuntBrain\(\)\.blocksLegacyTargeting\(\) \|\| this\.paleHound\.isAvoidingHazard\(\)\) return false;', '', body)
+                body = re.sub(r'if \(this\.paleHound\.getHuntBrain\(\)\.enabled\(\)\) this\.paleHound\.getHuntBrain\(\)\.disengage\(\);\s*else this\.paleHound\.disappear\(\);\s*return;', 'this.paleHound.disappear();', body)
+                body = body.replace('public void start() {\n      this.ticksUntilLeave = Utils.presenceTicks((Integer)ServerConfig.TIME_UNTIL_LEAVE_CHASE.get());', 'public void start() {')
                 body = body.replace('maxUpStep()', 'getStepHeight()')
                 body = body.replace('Utils.presenceTicks(', 'Utils.secondsToTicks(')
                 body = body.replace('this.paleHound.setCrawling(false);', 'this.paleHound.getEntityData().set(PaleHoundEntity.CRAWLING_ACCESSOR, false);')

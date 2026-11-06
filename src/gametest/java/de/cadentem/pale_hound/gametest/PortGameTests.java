@@ -183,14 +183,16 @@ public final class PortGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "port_test")
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30)
     public static void prefersStalkingBeforeProximityAttack(GameTestHelper helper) {
         var hound = spawn(helper);
         hound.setNoGravity(true);
+        hound.setPos(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(64, 2, 64))));
+        hound.setYHeadRot(-90);
         var player = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(),
             new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "SpawnStalkTest"));
         player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
-        player.setPos(hound.position().add(6, 0, 0));
+        player.setPos(hound.position().add(20, 0, 0));
         helper.getLevel().addNewPlayer(player);
         try {
             // Seed zero rolls about 0.73: rejected by the old 50% threshold, accepted by 90%.
@@ -462,6 +464,8 @@ public final class PortGameTests {
                 java.util.List.of(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(4, 1, 3))),
                     Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(2, 1, 6)))));
             helper.assertTrue(route != null && route.canReach(), "Waypoint search should try another reachable candidate");
+            var experience = new net.minecraft.nbt.CompoundTag(); experience.putInt("FIRE", 1);
+            hound.getHazardLearning().load(experience);
             helper.setBlock(2, 0, 6, net.minecraft.world.level.block.Blocks.MAGMA_BLOCK);
             var safeRoute = de.cadentem.pale_hound.entities.navigation.HoundRoutes.findReachable(hound,
                 java.util.List.of(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(2, 1, 6))),

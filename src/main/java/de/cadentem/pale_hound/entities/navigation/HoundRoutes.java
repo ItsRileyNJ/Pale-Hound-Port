@@ -27,6 +27,13 @@ public final class HoundRoutes {
         return null;
     }
 
+    private static boolean knownHazard(PaleHoundEntity hound, net.minecraft.world.level.block.state.BlockState state) {
+        var learning = hound.getHazardLearning();
+        if (learning.enabled()) return learning.avoidBlock(state);
+        return state.is(Blocks.MAGMA_BLOCK) || state.is(Blocks.CACTUS) || state.is(Blocks.POWDER_SNOW)
+            || state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE);
+    }
+
     public static boolean canWalkStraight(PaleHoundEntity hound, Vec3 destination) {
         Vec3 start = hound.position();
         if (Math.abs(destination.y - start.y) > 0.5 || start.distanceToSqr(destination) > 32 * 32) return false;
@@ -39,9 +46,9 @@ public final class HoundRoutes {
             if (!hound.level().getWorldBorder().isWithinBounds(bounds) || !hound.level().noCollision(hound, bounds)) return false;
             var floor = hound.level().getBlockState(BlockPos.containing(point.add(0, -0.1, 0)));
             if (!floor.getFluidState().isEmpty() || floor.getCollisionShape(hound.level(), feet.below()).isEmpty()
-                || floor.is(Blocks.MAGMA_BLOCK) || floor.is(Blocks.CACTUS) || floor.is(Blocks.POWDER_SNOW)) return false;
+                || knownHazard(hound, floor)) return false;
             var state = hound.level().getBlockState(feet);
-            if (!state.getFluidState().isEmpty() || state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE)) return false;
+            if (!state.getFluidState().isEmpty() || knownHazard(hound, state)) return false;
         }
         return true;
     }
@@ -55,9 +62,9 @@ public final class HoundRoutes {
             var floor = hound.level().getBlockState(feet.below());
             if (!hound.level().getWorldBorder().isWithinBounds(feet)
                 || !floor.getFluidState().isEmpty() || floor.getCollisionShape(hound.level(), feet.below()).isEmpty()
-                || floor.is(Blocks.MAGMA_BLOCK) || floor.is(Blocks.CACTUS) || floor.is(Blocks.POWDER_SNOW)) continue;
+                || knownHazard(hound, floor)) continue;
             var state = hound.level().getBlockState(feet);
-            if (!state.getFluidState().isEmpty() || state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE)) continue;
+            if (!state.getFluidState().isEmpty() || knownHazard(hound, state)) continue;
             // Path searches use the Hound's crawling clearance, including low tunnel alternatives.
             AABB clearance = new AABB(feet.getX() + 0.25, feet.getY(), feet.getZ() + 0.25,
                 feet.getX() + 0.75, feet.getY() + 0.5, feet.getZ() + 0.75);

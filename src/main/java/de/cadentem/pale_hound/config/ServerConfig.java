@@ -54,6 +54,17 @@ public class ServerConfig {
     public static ModConfigSpec.BooleanValue ONLY_PLAY_NOISE_TO_TARGET;
     public static ModConfigSpec.ConfigValue<List<? extends String>> STORY_HOSTILE_ALLOWLIST;
 
+    public static ModConfigSpec.BooleanValue SENSORY_HUNTING;
+    public static ModConfigSpec.DoubleValue HOUND_HEARING_MULTIPLIER;
+    public static ModConfigSpec.IntValue HUNT_VISION_RANGE;
+    public static ModConfigSpec.IntValue HUNT_SEARCH_SECONDS;
+    public static ModConfigSpec.IntValue HUNT_RECOVERY_SECONDS;
+    public static ModConfigSpec.IntValue HUNT_MEMORY_SECONDS;
+    public static ModConfigSpec.IntValue HUNT_LIT_VISION_RANGE;
+    public static ModConfigSpec.DoubleValue HUNT_PATH_BUDGET;
+    public static ModConfigSpec.BooleanValue LEARN_HAZARDS;
+    public static ModConfigSpec.BooleanValue SHARE_HAZARD_LEARNING;
+
     public static final List<String> DEFAULT_SURFACE_BIOME_BLACKLIST = List.of("minecraft:badlands", "minecraft:wooded_badlands", "minecraft:eroded_badlands", "minecraft:desert");
     public static final List<String> LEGACY_SURFACE_BIOME_BLACKLIST = List.of("minecraft:badlands", "minecraft:bamboo_jungle", "minecraft:basalt_deltas", "minecraft:beach", "minecraft:birch_forest", "minecraft:cold_ocean", "minecraft:crimson_forest", "minecraft:dark_forest", "minecraft:deep_cold_ocean", "minecraft:deep_frozen_ocean", "minecraft:deep_lukewarm_ocean", "minecraft:deep_ocean", "minecraft:desert", "minecraft:eroded_badlands", "minecraft:flower_forest", "minecraft:forest", "minecraft:grove", "minecraft:jungle", "minecraft:lukewarm_ocean", "minecraft:mangrove_swamp", "minecraft:meadow", "minecraft:mushroom_fields", "minecraft:ocean", "minecraft:old_growth_birch_forest", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:plains", "minecraft:river", "minecraft:savanna", "minecraft:savanna_plateau", "minecraft:sparse_jungle", "minecraft:stony_peaks", "minecraft:stony_shore", "minecraft:sunflower_plains", "minecraft:swamp", "minecraft:taiga", "minecraft:warm_ocean", "minecraft:windswept_forest", "minecraft:windswept_gravelly_hills", "minecraft:wooded_woodlands");
 
@@ -177,6 +188,18 @@ public class ServerConfig {
         BUILDER.pop();
         BUILDER.push("Misc");
         ONLY_PLAY_NOISE_TO_TARGET = BUILDER.comment("Only play the ambient noises to the current (spawn) target (Note: The target can change when a spawn attempt is not successful)").define("only_play_noise_to_target", false);
+        BUILDER.pop();
+        BUILDER.push("Hunting");
+        SENSORY_HUNTING = BUILDER.comment("Enable sound investigation, sight-based pursuit and last-known-position searching.").define("sensory_hunting", true);
+        HOUND_HEARING_MULTIPLIER = BUILDER.comment("Scale hearing distances; cover muffles sounds and careful sneaking is quiet.").defineInRange("hearing_multiplier", 1.0, 0.1, 3.0);
+        HUNT_VISION_RANGE = BUILDER.comment("Maximum player vision distance; cover and careful movement allow hiding.").defineInRange("vision_range", 64, 12, 128);
+        HUNT_SEARCH_SECONDS = BUILDER.comment("Search duration after evidence; repeated noises can extend it up to twice this duration.").defineInRange("search_seconds", 45, 5, 120);
+        HUNT_RECOVERY_SECONDS = BUILDER.comment("Quiet roaming interval after an unsuccessful search; close contact or loud noise can interrupt it.").defineInRange("recovery_seconds", 30, 0, 300);
+        HUNT_MEMORY_SECONDS = BUILDER.comment("Maximum age of an unrefreshed evidence position.").defineInRange("memory_seconds", 45, 5, 300);
+        HUNT_LIT_VISION_RANGE = BUILDER.comment("Maximum vision distance for held lights or a player standing in block light of at least eight; walls still block sight.").defineInRange("lit_vision_range", 96, 12, 128);
+        HUNT_PATH_BUDGET = BUILDER.comment("Path search effort during evidence investigation; larger values explore more cave alternatives.").defineInRange("path_search_effort", 10.0, 2.0, 32.0);
+        LEARN_HAZARDS = BUILDER.comment("Learn hazard avoidance from actual damage, rather than starting with hazard knowledge.").define("learn_hazards", true);
+        SHARE_HAZARD_LEARNING = BUILDER.comment("Keep learned hazards across encounters in this world; false keeps learning individual.").define("share_hazard_learning", true);
         BUILDER.pop();
         SPEC = BUILDER.build();
     }

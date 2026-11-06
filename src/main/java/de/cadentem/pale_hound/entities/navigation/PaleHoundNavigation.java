@@ -25,6 +25,12 @@ public final class PaleHoundNavigation extends WallClimberNavigation {
         setCanPassDoors(true);
     }
 
+    @Override protected net.minecraft.world.level.pathfinder.PathFinder createPathFinder(int nodes) {
+        this.nodeEvaluator = new HoundNodeEvaluator((PaleHoundEntity)this.mob);
+        this.nodeEvaluator.setCanPassDoors(true);
+        return new net.minecraft.world.level.pathfinder.PathFinder(this.nodeEvaluator, nodes);
+    }
+
     @Override public Path createPath(BlockPos position, int accuracy) {
         var accessor = (ClimberNavigationAccessor)(Object)this;
         BlockPos previous = accessor.pale_hound$getClimbTarget();
@@ -79,7 +85,7 @@ public final class PaleHoundNavigation extends WallClimberNavigation {
             // partial path ends, even while crawling makes climbing impossible.
             hound.getMoveControl().setWantedPosition(hound.getX(), hound.getY(), hound.getZ(), 0);
         }
-        if ((hound.isFleeing || hound.isSurfaceStalkRetreating() || hound.isBackingAway()) && this.path != null && !this.path.isDone()) {
+        if ((hound.isFleeing || hound.isSurfaceStalkRetreating() || hound.isBackingAway() || hound.isAvoidingHazard()) && this.path != null && !this.path.isDone()) {
             // Narrow-cave navigation visits every block center. On open ground that
             // creates a left/right staircase; skip it only across fully clear ground.
             for (int index = Math.min(this.path.getNodeCount() - 1, this.path.getNextNodeIndex() + 32);
