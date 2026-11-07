@@ -19,11 +19,6 @@ public class ModEntityTypes {
          .build(ResourceLocation.fromNamespaceAndPath("pale_hound", "pale_hound").toString())
    );
 
-   public static final DeferredHolder<EntityType<?>, EntityType<de.cadentem.pale_hound.entities.ReferencePreviewEntity>> REFERENCE_PREVIEW = ENTITY_TYPES.register(
-      "reference_preview", () -> Builder.of(de.cadentem.pale_hound.entities.ReferencePreviewEntity::new, MobCategory.MISC)
-         .sized(1.8F, 2.8F).clientTrackingRange(12)
-         .build(ResourceLocation.fromNamespaceAndPath("pale_hound", "reference_preview").toString()));
-
    public static void register(IEventBus eventBus) {
       ENTITY_TYPES.register(eventBus);
    }

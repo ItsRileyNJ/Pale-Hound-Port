@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.148'
 }
 
-version = '1.12.1-neoforge-1.21.1'
+version = '1.12.2-neoforge-1.21.1'
 group = 'de.cadentem.pale_hound'
 base.archivesName = 'Pale_Hound'
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -13,10 +13,6 @@ neoForge {
     runs {
         client {
             client()
-            if (project.hasProperty('referencePreview')) {
-                systemProperty 'pale_hound.referencePreview', 'true'
-                programArguments.addAll '--quickPlaySingleplayer', project.property('referencePreview').toString()
-            }
             if (project.hasProperty('clientAnimationSmoke')) {
                 systemProperty 'pale_hound.clientAnimationSmoke', 'true'
                 programArguments.addAll '--quickPlaySingleplayer', project.property('clientAnimationSmoke').toString()
