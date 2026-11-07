@@ -93,6 +93,9 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
    public static final EntityDataAccessor<Boolean> BACKING_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    public static final EntityDataAccessor<Boolean> GROUND_INSPECTION_ACCESSOR = SynchedEntityData.defineId(PaleHoundEntity.class, EntityDataSerializers.BOOLEAN);
    private de.cadentem.pale_hound.entities.goals.PaleHoundInspectItemGoal inspectItemGoal;
+   private final HoundCombatBounds.State combatBoundsState = new HoundCombatBounds.State();
+   public HoundCombatBounds.State getCombatBoundsState() { return this.combatBoundsState; }
+   private final HoundCombatPart[] combatParts = {new HoundCombatPart(this), new HoundCombatPart(this), new HoundCombatPart(this), new HoundCombatPart(this), new HoundCombatPart(this), new HoundCombatPart(this)};
    public Roll currentRoll = Roll.STROLL;
    private final de.cadentem.pale_hound.entities.hunting.HoundHuntBrain huntBrain = new de.cadentem.pale_hound.entities.hunting.HoundHuntBrain(this);
    private final de.cadentem.pale_hound.entities.hunting.HoundHazardLearning hazardLearning = new de.cadentem.pale_hound.entities.hunting.HoundHazardLearning(this);
@@ -136,6 +139,19 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.setPathfindingMalus(PathType.LAVA, -1.0F);
       this.setPathfindingMalus(PathType.POWDER_SNOW, -1.0F);
       this.hazardLearning.applyPathCosts();
+      this.setId(ENTITY_COUNTER.getAndAdd(this.combatParts.length + 1) + 1);
+      HoundCombatBounds.update(this, this.combatParts);
+   }
+
+   @Override public boolean isMultipartEntity() { return true; }
+   @Override public HoundCombatPart[] getParts() { return this.combatParts; }
+   @Override public void setId(int id) {
+      super.setId(id);
+      if (this.combatParts != null) for (int i=0;i<this.combatParts.length;i++) this.combatParts[i].setId(id+i+1);
+   }
+   @Override public void setPos(double x, double y, double z) {
+      super.setPos(x,y,z);
+      if (this.combatParts != null) HoundCombatBounds.update(this, this.combatParts);
    }
 
    public void applyConfigAttributes() {
@@ -336,6 +352,8 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.surfaceStalkAttackTarget = player.getUUID();
       this.setAggressive(true);
       this.huntBrain.acquired(player);
+      this.setInspectingGround(false);
+      this.setCrawling(false);
    }
 
    public Player getSurfaceStalkTarget() {
@@ -513,7 +531,7 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
             || !isOffsetFacingSolid && !isOffsetFacingAboveSolid && (isOffsetFacingTwoAboveSolid || isFacingSolid && isThreeAboveSolid);
          boolean closeChase = this.currentRoll == Roll.CHASE && this.isAggressive()
             && this.getTarget() != null && this.getTarget().isAlive()
-            && this.distanceToSqr(this.getTarget()) <= 12.0 * 12.0;
+            && !this.isSurfaceStalkAttack() && this.distanceToSqr(this.getTarget()) <= 12.0 * 12.0;
          boolean shouldCrawl = this.isInspectingItem() || this.isInspectingGround() || !this.isAvoidingHazard() && (this.huntBrain.shouldCrawl() || this.isSurfaceStalking() && !this.isSurfaceStalkRetreating()) || shouldCrouch || closeChase || isAboveSolid
             || !isOffsetFacingSolid && isOffsetFacingAboveSolid || isFacingSolid && isTwoAboveSolid;
          if (this.isAggressive() || this.isFleeing) {
@@ -547,12 +565,15 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       this.getNavigation().setSpeedModifier(this.getSpeedModifier());
       if (!this.level().isClientSide()) this.entityData.set(FLEEING_ACCESSOR, this.isFleeing || this.isSurfaceStalkRetreating() || this.isAvoidingHazard());
       super.tick();
+      HoundCombatBounds.update(this, this.combatParts);
       if (!this.level().isClientSide()) this.encounterAudio.tick();
    }
 
    public double getSpeedModifier() {
       if (this.isSurfaceStalkRetreating() || this.isFleeing) return 1.2;
       if (this.isAvoidingHazard()) return 1.1;
+      if (this.isSurfaceStalkAttack() && this.isAggressive()
+         && !this.huntBrain.controlsMovement()) return this.isCrawling() ? 0.95 : 1.2;
       if (this.isBackingAway()) return 0.22;
       if (this.isInspectingItem()) return 0.35;
       if (this.huntBrain.controlsMovement()) return this.huntBrain.speed();
@@ -616,46 +637,76 @@ public class PaleHoundEntity extends Monster implements GeoEntity {
       boolean isCurrentAboveSolid = this.level().getBlockState(this.blockPosition().above()).isSolid();
       boolean isCurrentTwoAboveSolid = this.level().getBlockState(this.blockPosition().above(2)).isSolid();
       boolean fleeing = this.entityData.get(FLEEING_ACCESSOR);
-      state.getController().transitionLength(fleeing ? 3 : POSTURE_BLEND_TICKS);
+      boolean sprinting = fleeing || this.isAggressive();
+      state.getController().transitionLength(fleeing ? 3 : this.isAggressive() ? 6 : POSTURE_BLEND_TICKS);
       double horizontalSpeed = Math.hypot(this.getDeltaMovement().x, this.getDeltaMovement().z);
-      state.getController().setAnimationSpeed(fleeing && state.isMoving()
+      state.getController().setAnimationSpeed(sprinting && state.isMoving()
          ? Math.max(1.0, Math.min(3.0, horizontalSpeed / 0.2)) : ANIMATION_SPEED);
       if (this.isCrawling() || isCurrentAboveSolid) {
          CrawlPose pose = this.getAnimationCrawlPose();
-         if (!state.isMoving()) return state.setAndContinue(switch (pose) {
+         if (!state.isMoving()) return this.playLocomotion(state, switch (pose) {
             case TALL -> this.CRAWL_IDLE;
             case TUNNEL -> this.CRAWL_TUNNEL_IDLE;
             case LOW -> this.CRAWL_LOW_IDLE;
          });
          Vec3 velocity = this.getDeltaMovement();
          double speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-         state.getController().setAnimationSpeed(fleeing ? Math.max(1.0, Math.min(6.0, speed * 12))
+         state.getController().setAnimationSpeed(sprinting ? Math.max(1.0, Math.min(6.0, speed * 12))
             : ANIMATION_SPEED * Math.max(0.75, Math.min(3.0, speed * 50)));
-         if (this.isBackingAway()) return state.setAndContinue(switch (pose) {
+         if (this.isBackingAway()) return this.playLocomotion(state, switch (pose) {
             case TALL -> this.CRAWL_BACKWARD;
             case TUNNEL -> this.CRAWL_TUNNEL_BACKWARD;
             case LOW -> this.CRAWL_LOW_BACKWARD;
          });
-         return state.setAndContinue(switch (pose) {
+         return this.playLocomotion(state, switch (pose) {
             case TALL -> this.CRAWL;
             case TUNNEL -> this.CRAWL_TUNNEL;
             case LOW -> this.CRAWL_LOW;
          });
       } else if (isCurrentTwoAboveSolid) {
-         return state.isMoving() ? state.setAndContinue(this.CROUCH_RUN) : state.setAndContinue(this.CROUCH_IDLE);
+         return state.isMoving() ? this.playLocomotion(state, this.CROUCH_RUN) : this.playLocomotion(state, this.CROUCH_IDLE);
       } else if (fleeing) {
-         return state.isMoving() ? state.setAndContinue(this.FLEE) : state.setAndContinue(this.CHASE_IDLE);
+         return state.isMoving() ? this.playLocomotion(state, this.FLEE) : this.playLocomotion(state, this.CHASE_IDLE);
       } else if (this.isAggressive()) {
-         return state.isMoving() ? state.setAndContinue(this.CHASE) : state.setAndContinue(this.IS_SPOTTED);
+         return state.isMoving() ? this.playLocomotion(state, this.CHASE) : this.playLocomotion(state, this.IS_SPOTTED);
       } else if (!this.pleaseStopMoving && (!(Boolean)this.entityData.get(SPOTTED_ACCESSOR) || state.isMoving())) {
-         return state.isMoving() ? state.setAndContinue(this.CALM_RUN) : state.setAndContinue(this.CALM_STILL);
+         return state.isMoving() ? this.playLocomotion(state, this.CALM_RUN) : this.playLocomotion(state, this.CALM_STILL);
       } else {
-         return state.setAndContinue(this.IS_SPOTTED);
+         return this.playLocomotion(state, this.IS_SPOTTED);
       }
+   }
+
+   private RawAnimation lastLocomotion, locomotionSequence;
+   private String lastLocomotionPose;
+   private String locomotionPose(RawAnimation target) {
+      if (target.equals(this.CRAWL_LOW) || target.equals(this.CRAWL_LOW_IDLE) || target.equals(this.CRAWL_LOW_BACKWARD)) return "inspect";
+      if (target.equals(this.CRAWL_TUNNEL) || target.equals(this.CRAWL_TUNNEL_IDLE) || target.equals(this.CRAWL_TUNNEL_BACKWARD)) return "tunnel";
+      if (target.equals(this.CRAWL) || target.equals(this.CRAWL_IDLE) || target.equals(this.CRAWL_BACKWARD)) return "stalk";
+      if (target.equals(this.CROUCH_RUN) || target.equals(this.CROUCH_IDLE)) return "crouch";
+      if (target.equals(this.CHASE) || target.equals(this.CHASE_IDLE) || target.equals(this.FLEE) || this.isAggressive()) return "run";
+      return "walk";
+   }
+   private PlayState playLocomotion(AnimationState<PaleHoundEntity> state, RawAnimation target) {
+      String pose = this.locomotionPose(target);
+      if (!target.equals(this.lastLocomotion)) {
+         this.locomotionSequence = target;
+         if (this.lastLocomotionPose != null && !pose.equals(this.lastLocomotionPose)) {
+            String clip = "animation.pale_hound.transition_" + this.lastLocomotionPose + "_to_" + pose;
+            this.locomotionSequence = RawAnimation.begin().thenPlay(clip);
+            for (var stage : target.getAnimationStages()) this.locomotionSequence.then(stage.animationName(), stage.loopType());
+         }
+         this.lastLocomotion = target; this.lastLocomotionPose = pose;
+      }
+      return state.setAndContinue(this.locomotionSequence);
    }
 
    public void registerControllers(ControllerRegistrar registrar) {
       registrar.add(new AnimationController<>(this, "controller", POSTURE_BLEND_TICKS, this::predicate));
+      registrar.add(new AnimationController<>(this, "breathing", 8, state -> {
+         if (state.isMoving() || this.isAggressive() || this.entityData.get(FLEEING_ACCESSOR)) return PlayState.STOP;
+         state.getController().setAnimationSpeed(ANIMATION_SPEED);
+         return state.setAndContinue(RawAnimation.begin().thenLoop("animation.pale_hound.idle_breathing"));
+      }));
    }
 
    public AnimatableInstanceCache getAnimatableInstanceCache() {

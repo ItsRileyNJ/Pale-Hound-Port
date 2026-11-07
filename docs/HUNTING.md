@@ -1,4 +1,4 @@
-# Hunting behavior — 1.11.2
+# Hunting behavior — 1.12.3
 
 The Hound now follows evidence, loses targets, checks remembered locations and
 winds down after unsuccessful searches. It retains the existing model, movement
@@ -12,7 +12,7 @@ in bright daylight can be seen up to 96 blocks away. Solid cover still blocks si
 Both hands count. Other luminous blocks are included in the
 `pale_hound:illuminating_items` item tag, which datapacks can extend.
 
-Quiet crouching reduces initial discovery distance in darkness. It does not erase
+Quiet crouching reduces initial discovery distance and narrows peripheral discovery in darkness. Light or a player-attributed audible disturbance in the last two seconds removes this advantage. It does not erase
 an established clear view. Very close visible contact remains detectable even
 behind the Hound, preserving the 12-block close-approach attack rule.
 
@@ -21,17 +21,17 @@ cover and the configured hearing multiplier:
 
 | Disturbance | Open-air range |
 | --- | ---: |
-| Walking | 10 blocks |
-| Sprinting | 28 blocks |
+| Walking | 15 blocks |
+| Sprinting | 42 blocks |
 | Careful sneaking footsteps | Silent |
-| Landing or splashing | 24 blocks |
-| Doors, containers, block placement/breaking | 24 blocks |
-| Firing a projectile | 40 blocks |
-| Projectile impact | 24 blocks |
-| Swimming | 16 blocks |
-| Player damage | 24 blocks |
-| Eating or drinking | 12 blocks |
-| Equipping or removing armor | 16 blocks |
+| Landing or splashing | 36 blocks |
+| Doors, containers, block placement/breaking | 36 blocks |
+| Firing a projectile | 60 blocks |
+| Projectile impact | 36 blocks |
+| Swimming | 24 blocks |
+| Player damage | 36 blocks |
+| Eating or drinking | 18 blocks |
+| Equipping or removing armor | 24 blocks |
 
 Injuries and fall landings attract investigation. Eating and drinking are audible
 during chewing/sipping, including interrupted meals, as well as on completion.
@@ -161,5 +161,11 @@ hazard can take priority over approaching its holder. Sound playback
 still permits one Hound sound at a time. Install the updated JAR on client and server;
 GeckoLib remains a separate dependency.
 
-Version 1.11.2 adds synchronized ground-inspection posture and uses networking
-version 6. Update both client and server together.
+Version 1.12.3 adds synchronized ground-inspection posture and uses networking
+version 7. Update both client and server together.
+
+Committed player attacks sprint on open ground; crouching/crawling is reserved
+for required clearance. Anatomical combat regions are separate from physical
+collision and allow top/side attacks without widening cave navigation. Posture
+transitions, longer slow strides, idle breathing and occasional investigation
+head turns complete this update.

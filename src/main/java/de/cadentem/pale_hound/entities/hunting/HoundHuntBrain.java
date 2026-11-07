@@ -19,7 +19,7 @@ public final class HoundHuntBrain {
     private Activity activity = Activity.NONE;
     private Vec3 lastSeen, lastHeard, evidence;
     private Vec3 travelDirection = Vec3.ZERO;
-    private UUID seenPlayer;
+    private UUID seenPlayer, heardPlayer;
     private int seenAt, heardAt = -1000, evidenceAt, beganAt, deadline, recoveryUntil;
     private int revision, legs;
     private float suspicion, lastStrength;
@@ -30,6 +30,7 @@ public final class HoundHuntBrain {
     public HoundHuntBrain(PaleHoundEntity hound) { this.hound = hound; }
     public boolean enabled() { return ServerConfig.SENSORY_HUNTING.get(); }
     public Activity activity() { return activity; }
+    public static double hearingRange(double radius) { return radius * 1.5 * ServerConfig.HOUND_HEARING_MULTIPLIER.get(); }
     public float suspicion() { return suspicion; }
     public Vec3 lastSeenPosition() { return lastSeen; }
     public Vec3 lastHeardPosition() { return lastHeard; }
@@ -62,16 +63,18 @@ public final class HoundHuntBrain {
         if (focused || distance <= 12 * 12) return true;
         Vec3 toward = player.position().subtract(hound.position()).multiply(1, 0, 1).normalize();
         Vec3 facing = Vec3.directionFromRotation(0, hound.getYHeadRot());
-        return toward.dot(facing) >= Math.cos(Math.toRadians(70));
+        return toward.dot(facing) >= Math.cos(Math.toRadians(player.isCrouching() && !HoundLightAwareness.isIlluminated(player) && !this.recentlyHeard(player) ? 50 : 70));
     }
 
     public double visionRange(Player player, boolean focused) {
         double range = ServerConfig.HUNT_VISION_RANGE.get();
         boolean lit = HoundLightAwareness.isIlluminated(player);
         if (lit) range = Math.max(range, ServerConfig.HUNT_LIT_VISION_RANGE.get());
-        else if (!focused && player.isCrouching()) range *= player.getDeltaMovement().horizontalDistanceSqr() < 0.001 ? 0.35 : 0.5;
+        else if (!focused && player.isCrouching() && !this.recentlyHeard(player)) range *= player.getDeltaMovement().horizontalDistanceSqr() < 0.001 ? 0.35 : 0.5;
         return range;
     }
+
+    private boolean recentlyHeard(Player player) { return player.getUUID().equals(this.heardPlayer) && hound.tickCount - this.heardAt <= 40; }
 
     public void observe(Player player) {
         if (!hound.isValidEncounterTarget(player) || player.isRemoved() || !hound.hasLineOfSight(player)) return;
@@ -91,7 +94,7 @@ public final class HoundHuntBrain {
             || !Double.isFinite(radius) || radius <= 0 || !Float.isFinite(strength) || strength <= 0) return false;
         if (hound.getTarget() != null && !(hound.getTarget() instanceof Player)) return false;
         double distance = position.distanceTo(hound.position());
-        double effectiveRadius = radius * ServerConfig.HOUND_HEARING_MULTIPLIER.get();
+        double effectiveRadius = hearingRange(radius);
         if (distance > effectiveRadius) return false;
         boolean muffled = hound.level().clip(new ClipContext(hound.getEyePosition(), position.add(0, 0.5, 0),
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, hound)).getType() != HitResult.Type.MISS;
@@ -99,7 +102,7 @@ public final class HoundHuntBrain {
         if (distance > effectiveRadius || activity == Activity.RECOVERING && strength < 20) return false;
         hound.cancelItemInspection();
         if (hound.tickCount - heardAt < 4 && strength <= lastStrength) return false;
-        heardAt = hound.tickCount; lastStrength = strength;
+        heardAt = hound.tickCount; heardPlayer = source == null ? null : source.getUUID(); lastStrength = strength;
         lastHeard = Vec3.atBottomCenterOf(BlockPos.containing(position));
         boolean repeated = noisePlaces.stream().anyMatch(place -> place.distSqr(BlockPos.containing(position)) <= 16);
         noisePlaces.addLast(BlockPos.containing(position));

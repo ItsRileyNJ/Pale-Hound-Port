@@ -78,7 +78,7 @@ public final class HoundHearingEvents {
         broadcast(level, player, event.getEventPosition(), radius, strength);
     }
     private static void broadcast(ServerLevel level, Player player, Vec3 position, double radius, float strength) {
-        double reach = radius * ServerConfig.HOUND_HEARING_MULTIPLIER.get();
+        double reach = de.cadentem.pale_hound.entities.hunting.HoundHuntBrain.hearingRange(radius);
         var bounds = new AABB(position, position).inflate(reach);
         for (var hound : level.getEntitiesOfClass(PaleHoundEntity.class, bounds))
             if (!hound.isNoAi()) hound.getHuntBrain().hear(player, position, radius, strength);

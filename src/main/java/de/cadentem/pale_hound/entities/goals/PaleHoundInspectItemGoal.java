@@ -32,13 +32,17 @@ public final class PaleHoundInspectItemGoal extends Goal {
         if (!hound.getHuntBrain().enabled() || hound.getHuntBrain().activity() != HoundHuntBrain.Activity.NONE
             || hound.isNoAi() || hound.isAggressive() || hound.getTarget() != null || hound.isFleeing
             || hound.isSurfaceStalkRetreating() || hound.isAvoidingHazard() || hound.isBackingAway()
-            || hound.currentRoll != Roll.STROLL || hound.isInWaterOrBubble() || !hound.onGround()) return false;
+            || hound.currentRoll != Roll.STROLL || hound.isInWaterOrBubble() || !supported(hound)) return false;
         // Curiosity must not draw a stalker toward a player or delay close-range reactions.
         return hound.level().players().stream().noneMatch(player -> hound.isValidEncounterTarget(player)
             && hound.distanceToSqr(player) < 24 * 24 && hound.hasLineOfSight(player));
     }
+    private boolean supported(net.minecraft.world.entity.Entity entity) {
+        return entity.onGround() || entity.getDeltaMovement().y <= 0.01
+            && entity.level().getBlockCollisions(entity, entity.getBoundingBox().move(0,-0.08,0)).iterator().hasNext();
+    }
     private boolean visible(ItemEntity candidate) {
-        if (candidate == null || candidate.isRemoved() || candidate.getItem().isEmpty() || !candidate.onGround()
+        if (candidate == null || candidate.isRemoved() || candidate.getItem().isEmpty() || !supported(candidate)
             || hound.distanceToSqr(candidate) > 12 * 12 || Math.abs(candidate.getY() - hound.getY()) > 2) return false;
         return hound.level().clip(new ClipContext(hound.getEyePosition(), candidate.position().add(0, 0.15, 0),
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, hound)).getType() == HitResult.Type.MISS;

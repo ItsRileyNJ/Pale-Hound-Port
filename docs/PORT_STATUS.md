@@ -657,3 +657,38 @@ Removed the separate reference-preview entity, registration, renderer, geometry,
 textures, empty animation resource, development fixture and model generator.
 The uncommitted follow-up model rebuild is removed too. The original Pale Hound
 assets and all completed AI/encounter features remain as in 1.11.2.
+
+## Attack commitment, anatomical targeting and animation polish (1.12.3)
+
+Removed the unconditional close-crawl rule from committed player attacks and gave
+that pursuit its own sprint speed. Ceiling-required crawling retains a faster
+attack speed; stalking/backoff remain slow. Running playback follows movement.
+The surface regression now requires physical closure within 25 ticks as well as
+actual melee damage.
+
+Added six NeoForge multipart combat regions (torso, head, arms and legs) with
+sequential, synchronized IDs. Pose envelopes are baked from the shipped rig with
+GeckoLib's transforms; damage forwards to the parent. Physical collision remains
+unchanged. Actual client top-down selection and an attack packet were verified
+to damage the server Hound. Networking is version 7.
+
+Removed outward shoulder translations across all crawl poses and added two small
+chest-attached shoulder sockets. Slow stride angular travel increases 30% at the
+same cadence. Added 30 directed posture transitions and subtle additive idle chest
+breathing. Investigating pauses sometimes turn the head slowly left/right.
+
+Hearing ranges increase 50% while preserving muffling and creature filtering.
+Dark crouching reduces discovery range and peripheral detection; actual light or
+a recent audible action from that player removes that advantage. Crouching does
+not erase an already confirmed clear view. Supported-ground checks avoid aborting
+item inspection during a transient onGround flag change.
+
+The dedicated server suite contains 71 required tests; ten resource checks also
+validate original assets outside the explicit shoulder/animation additions.
+
+Final validation: all 71 required server tests and all ten resource checks pass.
+The physical client loads all transition/breathing clips and verifies real
+top-down multipart selection, synchronized IDs and server damage. Pose bounds
+retain the prior posture briefly during visual blends to keep attacks covered
+through transitions. Release packaging excludes development fixtures and contains
+no experimental reference model.

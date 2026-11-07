@@ -195,6 +195,11 @@ public final class StalkingMovementGameTests {
             helper.assertTrue(hound.currentRoll == de.cadentem.pale_hound.entities.goals.Roll.CHASE && !hound.isFleeing,
                 "Proximity targeting rerolled a committed stalk attack into fleeing");
         });
+        helper.runAfterDelay(25, () -> {
+            helper.assertTrue(hound.isSurfaceStalkAttack() && !hound.isCrawling() && hound.getSpeedModifier() >= 1.0,
+                "Committed surface attack retained the slow stalking posture/speed");
+            helper.assertTrue(hound.distanceTo(player) < 4, "Surface attack did not physically sprint toward the player");
+        });
         helper.runAfterDelay(130, () -> {
             try {
                 helper.assertTrue(!hound.isSurfaceStalking() && hound.getTarget() == player, "Stalker did not retain the close player target");

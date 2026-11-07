@@ -28,6 +28,14 @@ class PortResources(unittest.TestCase):
                     for key in ['ambient_crying', 'stalking_underground', 'sees_player', 'sees_player_surface']:
                         actual.pop(key)
                     self.assertEqual(actual, json.loads(original))
+                elif name == 'assets/pale_hound/geo/pale_hound.geo.json':
+                    text = (RES / name).read_text()
+                    geometry = json.loads(text)
+                    body = next(b for b in geometry['minecraft:geometry'][0]['bones'] if b['name'] == 'upperbody')
+                    sockets = body['cubes'][-2:]
+                    self.assertEqual([c['origin'] for c in sockets], [[-1.3,36.4,2.1],[-1.3,36.4,-4.6]])
+                    addition = ',' + ','.join('\n' + json.dumps(c, indent=2) for c in sockets)
+                    self.assertEqual(digest(text.replace(addition, '', 1).encode()), expected)
                 else:
                     self.assertEqual(digest((RES / name).read_bytes()), expected)
 
@@ -39,6 +47,9 @@ class PortResources(unittest.TestCase):
         for time, vector in rotations.items():
             rotations[time] = {'vector': [float(v.split('+')[0]) for v in vector], 'easing': 'easeOutSine'}
         actual = json.loads((RES / name).read_text())
+        for key in list(actual['animations']):
+            if 'transition_' in key or key.endswith('.idle_breathing'):
+                actual['animations'].pop(key)
         expected['animations'].pop('animation.pale_hound.crawl')
         actual['animations'].pop('animation.pale_hound.crawl')
         actual['animations'].pop('animation.pale_hound.crawl_idle')

@@ -66,7 +66,7 @@ public final class ItemInspectionGameTests {
             helper.assertTrue(hound.tickCount - beganLooking[0] <= 65, "Item inspection became a long idle stop");
         });
         helper.succeedWhen(() -> {
-            helper.assertTrue(looked[0] && !hound.isInspectingItem(), "Inspection has not completed");
+            helper.assertTrue(looked[0] && !hound.isInspectingItem(), "Inspection has not completed: looked="+looked[0]+" pos="+hound.position()+" item="+item.position()+" active="+hound.isInspectingItem()+" phase="+hound.getHuntBrain().phase());
             helper.assertTrue(hound.position().distanceTo(start) > 3, "Inspection state changed without real approach movement");
             helper.assertTrue(!item.isRemoved() && item.getItem().getCount() == 3, "Inspection consumed or removed the dropped stack");
             helper.assertTrue(!hound.isInspectingGround(), "Low inspection pose remained latched after completion");

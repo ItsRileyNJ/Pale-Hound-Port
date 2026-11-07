@@ -115,11 +115,11 @@ public final class HuntingGameTests {
         var player = new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "EquipTest")) {
             { firstTick = false; }
         };
-        player.setGameMode(GameType.SURVIVAL); player.setPos(hound.position().add(0, 0, 18)); helper.getLevel().addNewPlayer(player);
+        player.setGameMode(GameType.SURVIVAL); player.setPos(hound.position().add(0, 0, 26)); helper.getLevel().addNewPlayer(player);
         try {
             player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
             var brain = hound.getHuntBrain();
-            helper.assertTrue(brain.lastHeardPosition() == null, "Equipment noise exceeded its sixteen-block range");
+            helper.assertTrue(brain.lastHeardPosition() == null, "Equipment noise exceeded its twenty-four-block range");
             player.setPos(hound.position().add(0, 0, 14));
             player.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
             helper.assertTrue(brain.lastHeardPosition() == null, "A silent hotbar change generated equipment noise");
@@ -129,6 +129,18 @@ public final class HuntingGameTests {
             helper.assertTrue(brain.lastHeardPosition().distanceTo(player.position()) < 1, "Removing equipment did not update the heard location");
             helper.assertTrue(hound.getTarget() == null && brain.lastSeenPosition() == null, "Equipment noise granted sight of its player");
         } finally { clean(helper, hound, player); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stalking_test", skyAccess = true, setupTicks = 30, batch = "sensory_hunting")
+    public static void distantSprintingIsHeardButCoverStillMufflesIt(GameTestHelper helper) {
+        var hound=hound(helper); var player=player(helper,hound.position().add(40,0,0)); player.setSprinting(true);
+        try {
+            wall(helper,true); emit(helper,GameEvent.STEP,player);
+            helper.assertTrue(hound.getHuntBrain().lastHeardPosition()==null,"Distant sprint ignored cover attenuation");
+            wall(helper,false); emit(helper,GameEvent.STEP,player);
+            helper.assertTrue(hound.getHuntBrain().controlsMovement(),"Forty-block sprint was not heard with extended hearing");
+        } finally {clean(helper,hound,player);}
         helper.succeed();
     }
 
@@ -294,6 +306,10 @@ public final class HuntingGameTests {
             helper.assertTrue(hound.canSeePlayer(player), "Standing player ahead should be visible");
             player.setPose(Pose.CROUCHING); player.setShiftKeyDown(true);
             helper.assertTrue(!hound.canSeePlayer(player), "Quiet crouching did not reduce discovery range in darkness");
+            helper.assertTrue(hound.getHuntBrain().hear(player,player.position(),36,24),"Could not create an audible crouching-player disturbance");
+            helper.assertTrue(hound.canSeePlayer(player),"Recent noise did not remove the dark-crouching discovery advantage");
+            hound.tickCount += 41;
+            helper.assertTrue(!hound.canSeePlayer(player),"Quiet crouching did not regain its discovery advantage after the sound cue aged");
             player.setPose(Pose.STANDING); player.setShiftKeyDown(false); player.setPos(hound.position().add(0, 0, -30));
             helper.assertTrue(!hound.canSeePlayer(player), "Hound discovered a player behind his vision cone");
             player.setPos(hound.position().add(0, 0, -10));

@@ -16,6 +16,8 @@ public final class PaleHoundHuntGoal extends Goal {
     private Vec3 progressPosition, inspectionPoint;
     private int progressAt;
     private boolean first;
+    private int nextGlance, glanceUntil;
+    private double glanceYaw;
     private boolean inspectingEvidence;
     public PaleHoundHuntGoal(PaleHoundEntity hound) {
         this.hound = hound; setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
@@ -36,6 +38,16 @@ public final class PaleHoundHuntGoal extends Goal {
         if (pause > 0) {
             --pause;
             hound.setInspectingGround(inspectingEvidence);
+            if (hound.tickCount >= nextGlance && hound.getRandom().nextFloat() < 0.12F) {
+                glanceYaw = hound.getYRot() + (hound.getRandom().nextBoolean() ? 50 : -50);
+                glanceUntil = hound.tickCount + 12 + hound.getRandom().nextInt(13);
+                nextGlance = hound.tickCount + 60 + hound.getRandom().nextInt(61);
+            }
+            if (hound.tickCount < glanceUntil) {
+                double angle=Math.toRadians(glanceYaw);
+                hound.getLookControl().setLookAt(hound.getX()-Math.sin(angle)*5, hound.getEyeY(), hound.getZ()+Math.cos(angle)*5, 6, 6);
+                return;
+            }
             if (inspectingEvidence) {
                 var point = inspectionPoint;
                 hound.getLookControl().setLookAt(point.x, point.y + 0.1, point.z, 25, 25);

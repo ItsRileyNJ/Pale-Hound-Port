@@ -81,7 +81,7 @@ in its generated run directory. The supplied GeckoLib JAR is in `libs/` for comp
 and development launches. It is not embedded in the output mod: install GeckoLib 4.9.3
 alongside the built mod on both the client and server.
 
-Build output is `build/libs/Pale_Hound-1.12.2-neoforge-1.21.1.jar`.
+Build output is `build/libs/Pale_Hound-1.12.3-neoforge-1.21.1.jar`.
 In this managed cloud, `tools/cloud-gradle.sh` selects the retained JDK and proxy trust settings.
 The supplied NeoForge installer identifies the target loader; it is not a mod dependency
 or a replacement for the NeoForge development toolchain used by Gradle.
@@ -97,7 +97,7 @@ The nine Python checks compare assets, original AI goal bodies, configuration de
 and category order against a baseline recovered from the original JAR; check the data
 resource migration, sound/animation references, and the supplied dependency checksum.
 They do not validate Java type compatibility, mixin application, rendering, spawning,
-networking, or game behavior. Use `runGameTestServer` for sixty-nine in-game server smoke tests.
+networking, or game behavior. Use `runGameTestServer` for seventy-one in-game server smoke tests.
 Use `./gradlew runClient -PclientAssetSmoke` to check model and animation loading
 and exit automatically once the title screen is reached. On first launch, dismiss
 the accessibility welcome screen. A display/OpenGL context is required. Test classes and their
@@ -405,3 +405,17 @@ roll cannot randomly turn this committed attack into fleeing, and the chase can
 start even while the player faces away. Walls, invisible-target configuration and
 normal Creative/Spectator protections are respected. Existing stalking duration,
 out-of-sight retreat removal and command timer exemption are retained.
+
+## Surface attack, targeting and animation fixes (1.12.3)
+
+A stalker approached within 12 blocks now commits to a fast player pursuit without
+forcing the low crawl on open ground. Combat hit regions cover the visible torso,
+head and limbs while cave navigation retains its narrow collision box. Both ends
+must update together (network protocol 7).
+
+Shoulder connections are repaired, slow crawling uses longer strides, posture
+changes have dedicated transition clips, and stationary poses have subtle chest
+breathing. Investigations include occasional slow head turns. Hearing distances
+are 50% longer. Quiet crouching in darkness reduces discovery distance and peripheral
+vision; held/ambient light or a sound from that player in the last two seconds
+removes that discovery advantage. Solid cover still blocks sight.

@@ -9,20 +9,20 @@ public final class NetworkHandler {
     private NetworkHandler() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("6").playToClient(StoryDifficultyState.TYPE, StoryDifficultyState.STREAM_CODEC,
+        event.registrar("7").playToClient(StoryDifficultyState.TYPE, StoryDifficultyState.STREAM_CODEC,
                 (packet, context) -> de.cadentem.pale_hound.client.StoryDifficultyClient.handle(packet));
-        event.registrar("6").playToServer(StoryDifficultyRequest.TYPE, StoryDifficultyRequest.STREAM_CODEC,
+        event.registrar("7").playToServer(StoryDifficultyRequest.TYPE, StoryDifficultyRequest.STREAM_CODEC,
                 (packet, context) -> {
                     if (context.player() instanceof net.minecraft.server.level.ServerPlayer player
                         && de.cadentem.pale_hound.difficulty.StoryDifficulty.mayUseSelector(player))
                         de.cadentem.pale_hound.difficulty.StoryDifficulty.setEnabled(player.getServer(), true);
                 });
         // NeoForge dispatches payload handlers on the main thread by default.
-        event.registrar("6").playToClient(CaveSound.TYPE, CaveSound.STREAM_CODEC,
+        event.registrar("7").playToClient(CaveSound.TYPE, CaveSound.STREAM_CODEC,
                 (packet, context) -> HandleCaveSound.handle(packet));
-        event.registrar("6").playToClient(HoundHighlight.TYPE, HoundHighlight.STREAM_CODEC,
+        event.registrar("7").playToClient(HoundHighlight.TYPE, HoundHighlight.STREAM_CODEC,
                 (packet, context) -> HoundHighlights.handle(packet));
-        event.registrar("6").playToClient(HoundSoundCue.TYPE, HoundSoundCue.STREAM_CODEC,
+        event.registrar("7").playToClient(HoundSoundCue.TYPE, HoundSoundCue.STREAM_CODEC,
                 (packet, context) -> HoundCueAudio.handle(packet));
     }
 }
